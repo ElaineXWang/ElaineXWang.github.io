@@ -274,45 +274,46 @@
     const card = document.querySelector("[data-identity-card]");
     if (!card) return;
 
-    const pointer = { active: false, x: 0, y: 0 };
+    const pointer = { active: false, x: 0, y: 0, side: "top", strength: 0, target: 0 };
 
-    const setPointerVars = (event) => {
+    const syncPointer = (event) => {
       const rect = card.getBoundingClientRect();
       const x = event.clientX - rect.left;
       const y = event.clientY - rect.top;
-      const lookX = Math.max(-1, Math.min(1, (x / rect.width - 0.5) * 2));
-      const lookY = Math.max(-1, Math.min(1, (y / rect.height - 0.5) * 2));
-      const nearestEdge = Math.min(x, y, rect.width - x, rect.height - y);
-      const edge = Math.max(0, Math.min(1, 1 - nearestEdge / 150));
-      card.style.setProperty("--card-x", `${x}px`);
-      card.style.setProperty("--card-y", `${y}px`);
-      card.style.setProperty("--look-x", lookX.toFixed(3));
-      card.style.setProperty("--look-y", lookY.toFixed(3));
-      card.style.setProperty("--edge-opacity", (0.06 + edge * 0.26).toFixed(3));
-      card.style.setProperty("--edge-size", `${Math.round(130 + edge * 78)}px`);
+      const distances = [
+        ["top", y],
+        ["right", rect.width - x],
+        ["bottom", rect.height - y],
+        ["left", x]
+      ];
+      const nearest = distances.sort((a, b) => a[1] - b[1])[0];
+      const strength = Math.max(0, Math.min(1, 1 - nearest[1] / 130));
+      card.style.setProperty("--ripple-x", `${x}px`);
+      card.style.setProperty("--ripple-y", `${y}px`);
+      card.style.setProperty("--ripple-opacity", (0.04 + strength * 0.18).toFixed(3));
+      card.style.setProperty("--ripple-size", `${Math.round(145 + strength * 80)}px`);
       pointer.active = true;
       pointer.x = x;
       pointer.y = y;
-      pointer.edge = edge;
+      pointer.side = nearest[0];
+      pointer.target = strength;
     };
 
-    card.addEventListener("pointermove", setPointerVars, { passive: true });
+    card.addEventListener("pointermove", syncPointer, { passive: true });
     card.addEventListener(
       "pointerleave",
       () => {
         pointer.active = false;
-        pointer.edge = 0;
-        card.style.setProperty("--look-x", "0");
-        card.style.setProperty("--look-y", "0");
-        card.style.setProperty("--edge-opacity", "0.05");
-        card.style.setProperty("--edge-size", "140px");
+        pointer.target = 0;
+        card.style.setProperty("--ripple-opacity", "0.04");
+        card.style.setProperty("--ripple-size", "150px");
       },
       { passive: true }
     );
 
     if (reduceMotion) return;
 
-    const canvas = card.querySelector("[data-identity-particles]");
+    const canvas = card.querySelector("[data-identity-ripple]");
     if (!canvas) return;
 
     const ctx = canvas.getContext("2d");
@@ -320,96 +321,97 @@
 
     let width = 0;
     let height = 0;
-    let ratio = 1;
-    let points = [];
     let frameId = null;
     let resizeTimer = null;
-
-    const rand = (min, max) => Math.random() * (max - min) + min;
+    let lastRipple = 0;
+    let ripples = [];
 
     const rebuild = () => {
       const rect = card.getBoundingClientRect();
       width = Math.max(280, Math.round(rect.width));
-      height = Math.max(260, Math.round(rect.height));
-      ratio = Math.min(window.devicePixelRatio || 1, 2);
+      height = Math.max(230, Math.round(rect.height));
+      const ratio = Math.min(window.devicePixelRatio || 1, 2);
 
       canvas.width = Math.round(width * ratio);
       canvas.height = Math.round(height * ratio);
       ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+    };
 
-      const count = width < 560 ? 22 : 44;
-      points = Array.from({ length: count }, (_, index) => {
-        const side = index % 4;
-        const margin = 18;
-        let x = rand(margin, width - margin);
-        let y = rand(margin, height - margin);
+    const projection = (side) => (side === "top" || side === "bottom" ? pointer.x : pointer.y);
 
-        if (side === 0) y = rand(margin, 70);
-        if (side === 1) x = rand(width - 86, width - margin);
-        if (side === 2) y = rand(height - 76, height - margin);
-        if (side === 3) x = rand(margin, 86);
+    const waveOffset = (side, position, time) => {
+      const axis = side === "top" || side === "bottom" ? width : height;
+      const focus = pointer.active ? projection(side) : axis * 0.5;
+      const distance = Math.abs(position - focus);
+      const envelope = Math.exp(-Math.pow(distance / Math.max(axis * 0.22, 82), 2));
+      const direction = side === "top" || side === "left" ? 1 : -1;
+      const base = Math.sin(position * 0.035 + time * 0.0022) * 0.55;
+      const ripple = Math.sin(distance * 0.12 - time * 0.011) * envelope * pointer.strength * 7.5;
+      return direction * (base + ripple);
+    };
 
-        return {
-          x,
-          y,
-          baseX: x,
-          baseY: y,
-          vx: 0,
-          vy: 0,
-          r: rand(0.8, 1.8),
-          phase: rand(0, Math.PI * 2)
-        };
-      });
+    const drawEdge = (side, time) => {
+      const steps = 34;
+      ctx.beginPath();
+
+      for (let index = 0; index <= steps; index += 1) {
+        const t = index / steps;
+        let x = t * width;
+        let y = t * height;
+
+        if (side === "top") {
+          x = t * width;
+          y = 1.5 + waveOffset(side, x, time);
+        } else if (side === "bottom") {
+          x = t * width;
+          y = height - 1.5 + waveOffset(side, x, time);
+        } else if (side === "left") {
+          x = 1.5 + waveOffset(side, y, time);
+          y = t * height;
+        } else {
+          x = width - 1.5 + waveOffset(side, y, time);
+          y = t * height;
+        }
+
+        if (index === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+
+      const active = pointer.side === side ? pointer.strength : pointer.strength * 0.25;
+      ctx.strokeStyle = `rgba(81, 117, 140, ${0.07 + active * 0.18})`;
+      ctx.lineWidth = 1.1 + active * 1.1;
+      ctx.stroke();
     };
 
     const draw = (time) => {
       ctx.clearRect(0, 0, width, height);
+      pointer.strength += (pointer.target - pointer.strength) * 0.08;
 
-      points.forEach((point, index) => {
-        point.vx += (point.baseX - point.x) * 0.006;
-        point.vy += (point.baseY - point.y) * 0.006;
+      if (pointer.active && pointer.target > 0.25 && time - lastRipple > 260) {
+        ripples.push({ x: pointer.x, y: pointer.y, side: pointer.side, born: time });
+        lastRipple = time;
+      }
 
-        if (pointer.active) {
-          const dx = pointer.x - point.x;
-          const dy = pointer.y - point.y;
-          const distance = Math.hypot(dx, dy);
-          const radius = (width < 560 ? 138 : 170) + pointer.edge * 42;
+      ctx.save();
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      drawEdge("top", time);
+      drawEdge("right", time);
+      drawEdge("bottom", time);
+      drawEdge("left", time);
 
-          if (distance > 0 && distance < radius) {
-            const force = (1 - distance / radius) * (0.36 + pointer.edge * 0.28);
-            point.vx += (dx / distance) * force;
-            point.vy += (dy / distance) * force;
-          }
-        }
-
-        point.vx *= 0.9;
-        point.vy *= 0.9;
-        point.x += point.vx + Math.sin(time * 0.00045 + point.phase) * 0.045;
-        point.y += point.vy + Math.cos(time * 0.00042 + point.phase) * 0.045;
-
-        for (let otherIndex = index + 1; otherIndex < points.length; otherIndex += 1) {
-          const other = points[otherIndex];
-          const dx = other.x - point.x;
-          const dy = other.y - point.y;
-          const distance = Math.hypot(dx, dy);
-
-          const linkDistance = width < 560 ? 84 : 112;
-
-          if (distance < linkDistance) {
-            ctx.beginPath();
-            ctx.moveTo(point.x, point.y);
-            ctx.lineTo(other.x, other.y);
-            ctx.strokeStyle = `rgba(81, 117, 140, ${(0.018 + pointer.edge * 0.028) * (1 - distance / linkDistance)})`;
-            ctx.lineWidth = 0.8;
-            ctx.stroke();
-          }
-        }
-
+      ripples = ripples.filter((ripple) => time - ripple.born < 1600);
+      ripples.forEach((ripple) => {
+        const age = (time - ripple.born) / 1600;
+        const radius = 18 + age * 115;
+        const alpha = (1 - age) * 0.16;
         ctx.beginPath();
-        ctx.arc(point.x, point.y, point.r, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(56, 88, 105, ${0.2 + pointer.edge * 0.1})`;
-        ctx.fill();
+        ctx.ellipse(ripple.x, ripple.y, radius * 1.3, radius * 0.42, 0, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(81, 117, 140, ${alpha})`;
+        ctx.lineWidth = 1;
+        ctx.stroke();
       });
+      ctx.restore();
 
       frameId = window.requestAnimationFrame(draw);
     };
