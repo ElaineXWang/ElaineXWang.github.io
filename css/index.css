@@ -382,15 +382,16 @@ body.nav-open .menu-toggle span + span {
 .hero-space {
   position: relative;
   overflow: hidden;
-  min-height: 286px;
+  min-height: 292px;
   margin-bottom: 30px;
-  padding: 24px 28px 26px;
+  padding: 26px 30px 28px;
   background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(246, 250, 247, 0.72)),
-    radial-gradient(circle at 18% 18%, rgba(105, 132, 112, 0.18), transparent 24rem);
+    linear-gradient(135deg, rgba(255, 255, 255, 0.94), rgba(247, 250, 248, 0.76)),
+    radial-gradient(circle at 18% 14%, rgba(105, 132, 112, 0.19), transparent 24rem),
+    radial-gradient(circle at 86% 72%, rgba(160, 115, 95, 0.08), transparent 20rem);
   border: 1px solid rgba(96, 90, 78, 0.15);
   border-radius: 8px;
-  box-shadow: 0 22px 58px rgba(47, 42, 34, 0.075);
+  box-shadow: 0 26px 64px rgba(47, 42, 34, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.72);
 }
 
 .hero-space::before,
@@ -410,7 +411,9 @@ body.nav-open .menu-toggle span + span {
 }
 
 .hero-space::after {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.58));
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.58)),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.4), transparent 36%, transparent 66%, rgba(255, 255, 255, 0.34));
 }
 
 .hero-copy {
@@ -462,6 +465,7 @@ body.nav-open .menu-toggle span + span {
   max-width: 690px;
   color: #4f5960 !important;
   font-size: 15px !important;
+  line-height: 1.55 !important;
 }
 
 .hero-education {
@@ -473,28 +477,41 @@ body.nav-open .menu-toggle span + span {
 .metrics-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 10px;
-  margin-top: 18px;
+  gap: 12px;
+  margin-top: 20px;
 }
 
 .metric-card {
+  position: relative;
+  overflow: hidden;
   display: grid;
   align-content: center;
-  min-height: 74px;
-  padding: 12px 13px;
+  min-height: 78px;
+  padding: 13px 14px;
   color: var(--text);
-  background: rgba(255, 255, 255, 0.66);
+  background: rgba(255, 255, 255, 0.72);
   border: 1px solid rgba(96, 90, 78, 0.14);
   border-radius: 8px;
   box-shadow: 0 10px 24px rgba(47, 42, 34, 0.045);
   text-decoration: none;
 }
 
+.metric-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, rgba(72, 103, 84, 0.42), rgba(160, 115, 95, 0.18));
+  opacity: 0.7;
+}
+
 .metric-card strong {
   display: block;
   color: var(--ink);
   font-family: var(--serif);
-  font-size: 25px;
+  font-size: 31px;
   line-height: 1;
 }
 
@@ -508,6 +525,7 @@ body.nav-open .menu-toggle span + span {
 
 .metric-link:hover {
   border-color: var(--line-strong);
+  background: rgba(255, 255, 255, 0.9);
   transform: translateY(-1px);
 }
 
@@ -821,7 +839,7 @@ body.nav-open .menu-toggle span + span {
   }
 
   .hero-space {
-    min-height: 260px;
+    min-height: 270px;
     padding: 22px;
   }
 
@@ -900,12 +918,12 @@ body.nav-open .menu-toggle span + span {
   }
 
   .metric-card {
-    min-height: 68px;
-    padding: 11px;
+    min-height: 72px;
+    padding: 12px;
   }
 
   .metric-card strong {
-    font-size: 22px;
+    font-size: 25px;
   }
 
   .section-heading {
