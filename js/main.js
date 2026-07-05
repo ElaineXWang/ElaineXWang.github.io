@@ -104,7 +104,7 @@
     if (!ctx) return;
 
     const text = holder.dataset.particleText || "Xi Wang";
-    const pointer = { active: false, x: 0, y: 0 };
+    const pointer = { active: false, x: 0, y: 0, edge: 0 };
     let width = 0;
     let height = 0;
     let particles = [];
@@ -282,13 +282,18 @@
       const y = event.clientY - rect.top;
       const lookX = Math.max(-1, Math.min(1, (x / rect.width - 0.5) * 2));
       const lookY = Math.max(-1, Math.min(1, (y / rect.height - 0.5) * 2));
+      const nearestEdge = Math.min(x, y, rect.width - x, rect.height - y);
+      const edge = Math.max(0, Math.min(1, 1 - nearestEdge / 150));
       card.style.setProperty("--card-x", `${x}px`);
       card.style.setProperty("--card-y", `${y}px`);
       card.style.setProperty("--look-x", lookX.toFixed(3));
       card.style.setProperty("--look-y", lookY.toFixed(3));
+      card.style.setProperty("--edge-opacity", (0.06 + edge * 0.26).toFixed(3));
+      card.style.setProperty("--edge-size", `${Math.round(130 + edge * 78)}px`);
       pointer.active = true;
       pointer.x = x;
       pointer.y = y;
+      pointer.edge = edge;
     };
 
     card.addEventListener("pointermove", setPointerVars, { passive: true });
@@ -296,8 +301,11 @@
       "pointerleave",
       () => {
         pointer.active = false;
+        pointer.edge = 0;
         card.style.setProperty("--look-x", "0");
         card.style.setProperty("--look-y", "0");
+        card.style.setProperty("--edge-opacity", "0.05");
+        card.style.setProperty("--edge-size", "140px");
       },
       { passive: true }
     );
@@ -329,7 +337,7 @@
       canvas.height = Math.round(height * ratio);
       ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
 
-      const count = width < 560 ? 42 : 62;
+      const count = width < 560 ? 22 : 44;
       points = Array.from({ length: count }, (_, index) => {
         const side = index % 4;
         const margin = 18;
@@ -365,10 +373,10 @@
           const dx = pointer.x - point.x;
           const dy = pointer.y - point.y;
           const distance = Math.hypot(dx, dy);
-          const radius = width < 560 ? 150 : 190;
+          const radius = (width < 560 ? 138 : 170) + pointer.edge * 42;
 
           if (distance > 0 && distance < radius) {
-            const force = (1 - distance / radius) * 0.52;
+            const force = (1 - distance / radius) * (0.36 + pointer.edge * 0.28);
             point.vx += (dx / distance) * force;
             point.vy += (dy / distance) * force;
           }
@@ -385,19 +393,21 @@
           const dy = other.y - point.y;
           const distance = Math.hypot(dx, dy);
 
-          if (distance < 118) {
+          const linkDistance = width < 560 ? 84 : 112;
+
+          if (distance < linkDistance) {
             ctx.beginPath();
             ctx.moveTo(point.x, point.y);
             ctx.lineTo(other.x, other.y);
-            ctx.strokeStyle = `rgba(81, 117, 140, ${0.1 * (1 - distance / 118)})`;
-            ctx.lineWidth = 1;
+            ctx.strokeStyle = `rgba(81, 117, 140, ${(0.018 + pointer.edge * 0.028) * (1 - distance / linkDistance)})`;
+            ctx.lineWidth = 0.8;
             ctx.stroke();
           }
         }
 
         ctx.beginPath();
         ctx.arc(point.x, point.y, point.r, 0, Math.PI * 2);
-        ctx.fillStyle = "rgba(56, 88, 105, 0.46)";
+        ctx.fillStyle = `rgba(56, 88, 105, ${0.2 + pointer.edge * 0.1})`;
         ctx.fill();
       });
 
