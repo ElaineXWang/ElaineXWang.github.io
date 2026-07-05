@@ -270,5 +270,162 @@
     frameId = window.requestAnimationFrame(draw);
   };
 
+  const initIdentityCard = () => {
+    const card = document.querySelector("[data-identity-card]");
+    if (!card) return;
+
+    const pointer = { active: false, x: 0, y: 0 };
+
+    const setPointerVars = (event) => {
+      const rect = card.getBoundingClientRect();
+      const x = event.clientX - rect.left;
+      const y = event.clientY - rect.top;
+      const lookX = Math.max(-1, Math.min(1, (x / rect.width - 0.5) * 2));
+      const lookY = Math.max(-1, Math.min(1, (y / rect.height - 0.5) * 2));
+      card.style.setProperty("--card-x", `${x}px`);
+      card.style.setProperty("--card-y", `${y}px`);
+      card.style.setProperty("--look-x", lookX.toFixed(3));
+      card.style.setProperty("--look-y", lookY.toFixed(3));
+      pointer.active = true;
+      pointer.x = x;
+      pointer.y = y;
+    };
+
+    card.addEventListener("pointermove", setPointerVars, { passive: true });
+    card.addEventListener(
+      "pointerleave",
+      () => {
+        pointer.active = false;
+        card.style.setProperty("--look-x", "0");
+        card.style.setProperty("--look-y", "0");
+      },
+      { passive: true }
+    );
+
+    if (reduceMotion) return;
+
+    const canvas = card.querySelector("[data-identity-particles]");
+    if (!canvas) return;
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    let width = 0;
+    let height = 0;
+    let ratio = 1;
+    let points = [];
+    let frameId = null;
+    let resizeTimer = null;
+
+    const rand = (min, max) => Math.random() * (max - min) + min;
+
+    const rebuild = () => {
+      const rect = card.getBoundingClientRect();
+      width = Math.max(280, Math.round(rect.width));
+      height = Math.max(260, Math.round(rect.height));
+      ratio = Math.min(window.devicePixelRatio || 1, 2);
+
+      canvas.width = Math.round(width * ratio);
+      canvas.height = Math.round(height * ratio);
+      ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+
+      const count = width < 560 ? 42 : 62;
+      points = Array.from({ length: count }, (_, index) => {
+        const side = index % 4;
+        const margin = 18;
+        let x = rand(margin, width - margin);
+        let y = rand(margin, height - margin);
+
+        if (side === 0) y = rand(margin, 70);
+        if (side === 1) x = rand(width - 86, width - margin);
+        if (side === 2) y = rand(height - 76, height - margin);
+        if (side === 3) x = rand(margin, 86);
+
+        return {
+          x,
+          y,
+          baseX: x,
+          baseY: y,
+          vx: 0,
+          vy: 0,
+          r: rand(0.8, 1.8),
+          phase: rand(0, Math.PI * 2)
+        };
+      });
+    };
+
+    const draw = (time) => {
+      ctx.clearRect(0, 0, width, height);
+
+      points.forEach((point, index) => {
+        point.vx += (point.baseX - point.x) * 0.006;
+        point.vy += (point.baseY - point.y) * 0.006;
+
+        if (pointer.active) {
+          const dx = pointer.x - point.x;
+          const dy = pointer.y - point.y;
+          const distance = Math.hypot(dx, dy);
+          const radius = width < 560 ? 150 : 190;
+
+          if (distance > 0 && distance < radius) {
+            const force = (1 - distance / radius) * 0.52;
+            point.vx += (dx / distance) * force;
+            point.vy += (dy / distance) * force;
+          }
+        }
+
+        point.vx *= 0.9;
+        point.vy *= 0.9;
+        point.x += point.vx + Math.sin(time * 0.00045 + point.phase) * 0.045;
+        point.y += point.vy + Math.cos(time * 0.00042 + point.phase) * 0.045;
+
+        for (let otherIndex = index + 1; otherIndex < points.length; otherIndex += 1) {
+          const other = points[otherIndex];
+          const dx = other.x - point.x;
+          const dy = other.y - point.y;
+          const distance = Math.hypot(dx, dy);
+
+          if (distance < 118) {
+            ctx.beginPath();
+            ctx.moveTo(point.x, point.y);
+            ctx.lineTo(other.x, other.y);
+            ctx.strokeStyle = `rgba(81, 117, 140, ${0.1 * (1 - distance / 118)})`;
+            ctx.lineWidth = 1;
+            ctx.stroke();
+          }
+        }
+
+        ctx.beginPath();
+        ctx.arc(point.x, point.y, point.r, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(56, 88, 105, 0.46)";
+        ctx.fill();
+      });
+
+      frameId = window.requestAnimationFrame(draw);
+    };
+
+    window.addEventListener(
+      "resize",
+      () => {
+        window.clearTimeout(resizeTimer);
+        resizeTimer = window.setTimeout(rebuild, 160);
+      },
+      { passive: true }
+    );
+
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden && frameId) {
+        window.cancelAnimationFrame(frameId);
+        frameId = null;
+      } else if (!document.hidden && !frameId) {
+        frameId = window.requestAnimationFrame(draw);
+      }
+    });
+
+    rebuild();
+    frameId = window.requestAnimationFrame(draw);
+  };
+
   initParticleTitle();
+  initIdentityCard();
 })();

@@ -382,16 +382,23 @@ body.nav-open .menu-toggle span + span {
 .hero-space {
   position: relative;
   overflow: hidden;
-  min-height: 292px;
+  --card-x: 50%;
+  --card-y: 50%;
+  --look-x: 0;
+  --look-y: 0;
+  min-height: 356px;
   margin-bottom: 30px;
-  padding: 26px 30px 28px;
+  padding: 28px 32px 30px;
   background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.94), rgba(247, 250, 248, 0.76)),
-    radial-gradient(circle at 18% 14%, rgba(105, 132, 112, 0.19), transparent 24rem),
-    radial-gradient(circle at 86% 72%, rgba(160, 115, 95, 0.08), transparent 20rem);
-  border: 1px solid rgba(96, 90, 78, 0.15);
+    linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(246, 250, 249, 0.84)),
+    linear-gradient(118deg, rgba(81, 117, 140, 0.1), transparent 18%, transparent 58%, rgba(105, 132, 112, 0.1)),
+    repeating-linear-gradient(90deg, rgba(64, 100, 112, 0.04) 0 1px, transparent 1px 46px);
+  border: 1px solid rgba(81, 117, 140, 0.2);
   border-radius: 8px;
-  box-shadow: 0 26px 64px rgba(47, 42, 34, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.72);
+  box-shadow:
+    0 28px 68px rgba(47, 42, 34, 0.09),
+    inset 0 1px 0 rgba(255, 255, 255, 0.82),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.46);
 }
 
 .hero-space::before,
@@ -404,36 +411,69 @@ body.nav-open .menu-toggle span + span {
 
 .hero-space::before {
   background:
-    linear-gradient(105deg, transparent 0 22%, rgba(81, 117, 140, 0.09) 22.2%, transparent 22.8% 68%, rgba(105, 132, 112, 0.07) 68.3%, transparent 69%),
-    repeating-linear-gradient(90deg, rgba(105, 132, 112, 0.03) 0 1px, transparent 1px 42px);
-  opacity: 0.68;
+    linear-gradient(105deg, transparent 0 18%, rgba(81, 117, 140, 0.13) 18.1%, transparent 18.6% 72%, rgba(105, 132, 112, 0.1) 72.1%, transparent 72.7%),
+    repeating-linear-gradient(0deg, rgba(105, 132, 112, 0.035) 0 1px, transparent 1px 38px);
+  opacity: 0.78;
   animation: hero-depth 28s ease-in-out infinite alternate;
 }
 
 .hero-space::after {
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.58)),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.4), transparent 36%, transparent 66%, rgba(255, 255, 255, 0.34));
+    linear-gradient(90deg, rgba(255, 255, 255, 0.72), transparent 24%, transparent 76%, rgba(255, 255, 255, 0.62)),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.68));
+}
+
+.identity-particle-field {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  opacity: 0.72;
+  pointer-events: none;
 }
 
 .hero-copy {
   position: relative;
-  z-index: 1;
+  z-index: 2;
   max-width: 760px;
 }
 
+.identity-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 4px;
+}
+
 .hero-kicker {
-  margin: 0 0 4px !important;
+  margin: 0 !important;
   color: var(--sage-ink) !important;
   font-size: 12px !important;
   font-weight: 700;
   text-transform: uppercase;
 }
 
+.identity-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 4px 11px;
+  color: #385869;
+  background: rgba(255, 255, 255, 0.66);
+  border: 1px solid rgba(81, 117, 140, 0.18);
+  border-radius: 999px;
+  box-shadow: 0 10px 24px rgba(47, 42, 34, 0.04);
+  font-size: 12px;
+  font-weight: 700;
+}
+
 .particle-title {
   position: relative;
   width: min(100%, 660px);
-  height: 112px;
+  height: 104px;
 }
 
 .particle-title canvas {
@@ -461,24 +501,54 @@ body.nav-open .menu-toggle span + span {
   opacity: 0;
 }
 
+.identity-statement {
+  margin: 2px 0 0 !important;
+  color: var(--ink) !important;
+  font-family: var(--serif);
+  font-size: clamp(25px, 4.2vw, 42px) !important;
+  font-weight: 700;
+  line-height: 1.1 !important;
+}
+
 .hero-meta {
-  max-width: 690px;
+  max-width: 650px;
+  margin-top: 9px !important;
   color: #4f5960 !important;
   font-size: 15px !important;
   line-height: 1.55 !important;
 }
 
 .hero-education {
-  margin-top: 3px !important;
+  margin-top: 4px !important;
   color: var(--muted) !important;
   font-size: 13px !important;
+}
+
+.identity-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.identity-tags span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 3px 10px;
+  color: #405e55;
+  background: rgba(233, 243, 236, 0.54);
+  border: 1px solid rgba(105, 132, 112, 0.16);
+  border-radius: 999px;
+  font-size: 12px;
 }
 
 .metrics-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
-  margin-top: 20px;
+  margin-top: 22px;
+  max-width: 720px;
 }
 
 .metric-card {
@@ -486,14 +556,15 @@ body.nav-open .menu-toggle span + span {
   overflow: hidden;
   display: grid;
   align-content: center;
-  min-height: 78px;
-  padding: 13px 14px;
+  min-height: 86px;
+  padding: 14px 15px;
   color: var(--text);
-  background: rgba(255, 255, 255, 0.72);
-  border: 1px solid rgba(96, 90, 78, 0.14);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(249, 252, 251, 0.66));
+  border: 1px solid rgba(81, 117, 140, 0.14);
   border-radius: 8px;
-  box-shadow: 0 10px 24px rgba(47, 42, 34, 0.045);
+  box-shadow: 0 12px 28px rgba(47, 42, 34, 0.05);
   text-decoration: none;
+  transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
 }
 
 .metric-card::before {
@@ -503,8 +574,14 @@ body.nav-open .menu-toggle span + span {
   left: 0;
   right: 0;
   height: 2px;
-  background: linear-gradient(90deg, rgba(72, 103, 84, 0.42), rgba(160, 115, 95, 0.18));
+  background: linear-gradient(90deg, rgba(81, 117, 140, 0.52), rgba(105, 132, 112, 0.22));
   opacity: 0.7;
+}
+
+.metric-card:hover {
+  border-color: rgba(81, 117, 140, 0.28);
+  background: rgba(255, 255, 255, 0.9);
+  transform: translateY(-2px);
 }
 
 .metric-card strong {
@@ -523,10 +600,79 @@ body.nav-open .menu-toggle span + span {
   line-height: 1.3;
 }
 
-.metric-link:hover {
-  border-color: var(--line-strong);
-  background: rgba(255, 255, 255, 0.9);
-  transform: translateY(-1px);
+.card-companion {
+  position: absolute;
+  right: 22px;
+  bottom: 18px;
+  z-index: 1;
+  width: 72px;
+  height: 46px;
+  opacity: 0.74;
+  pointer-events: none;
+  transform: translate3d(calc(var(--look-x) * 2px), calc(var(--look-y) * 2px), 0);
+  transition: opacity 180ms ease;
+}
+
+.card-companion span {
+  position: absolute;
+  display: block;
+}
+
+.companion-body {
+  left: 11px;
+  bottom: 3px;
+  width: 48px;
+  height: 27px;
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(81, 117, 140, 0.24);
+  border-radius: 999px 999px 13px 13px;
+  box-shadow: 0 12px 26px rgba(47, 42, 34, 0.05);
+}
+
+.companion-ear {
+  bottom: 25px;
+  width: 16px;
+  height: 16px;
+  background: rgba(255, 255, 255, 0.78);
+  border-top: 1px solid rgba(81, 117, 140, 0.24);
+  border-left: 1px solid rgba(81, 117, 140, 0.24);
+  border-radius: 5px 0 3px;
+  transform: rotate(45deg);
+}
+
+.companion-ear-left {
+  left: 19px;
+}
+
+.companion-ear-right {
+  right: 19px;
+}
+
+.companion-eye {
+  bottom: 18px;
+  width: 4px;
+  height: 4px;
+  background: rgba(56, 88, 105, 0.72);
+  border-radius: 999px;
+  transform: translate3d(calc(var(--look-x) * 1px), calc(var(--look-y) * 1px), 0);
+}
+
+.companion-eye-left {
+  left: 29px;
+}
+
+.companion-eye-right {
+  right: 29px;
+}
+
+.companion-tail {
+  right: 4px;
+  bottom: 12px;
+  width: 22px;
+  height: 19px;
+  border-top: 2px solid rgba(81, 117, 140, 0.26);
+  border-right: 2px solid rgba(81, 117, 140, 0.26);
+  border-radius: 0 999px 0 0;
 }
 
 .research-visual {
@@ -839,8 +985,12 @@ body.nav-open .menu-toggle span + span {
   }
 
   .hero-space {
-    min-height: 270px;
+    min-height: 392px;
     padding: 22px;
+  }
+
+  .identity-head {
+    align-items: flex-start;
   }
 
   .particle-title {
@@ -897,6 +1047,15 @@ body.nav-open .menu-toggle span + span {
     padding: 18px;
   }
 
+  .identity-head {
+    display: grid;
+    gap: 8px;
+  }
+
+  .identity-badge {
+    justify-self: start;
+  }
+
   .hero-kicker {
     font-size: 11px !important;
   }
@@ -913,6 +1072,15 @@ body.nav-open .menu-toggle span + span {
     font-size: 12px !important;
   }
 
+  .identity-tags {
+    gap: 6px;
+  }
+
+  .identity-tags span {
+    min-height: 26px;
+    padding: 2px 9px;
+  }
+
   .metrics-grid {
     gap: 8px;
   }
@@ -924,6 +1092,10 @@ body.nav-open .menu-toggle span + span {
 
   .metric-card strong {
     font-size: 25px;
+  }
+
+  .card-companion {
+    display: none;
   }
 
   .section-heading {
