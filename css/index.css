@@ -386,6 +386,29 @@ body.nav-open .menu-toggle span + span {
   --ripple-y: 50%;
   --ripple-opacity: 0.04;
   --ripple-size: 150px;
+  --paper-lift: -1px;
+  --paper-tilt-x: 0deg;
+  --paper-tilt-y: 0deg;
+  --t1: 0px;
+  --t2: 0px;
+  --t3: 0px;
+  --t4: 0px;
+  --t5: 0px;
+  --r1: 0px;
+  --r2: 0px;
+  --r3: 0px;
+  --r4: 0px;
+  --r5: 0px;
+  --b1: 0px;
+  --b2: 0px;
+  --b3: 0px;
+  --b4: 0px;
+  --b5: 0px;
+  --l1: 0px;
+  --l2: 0px;
+  --l3: 0px;
+  --l4: 0px;
+  --l5: 0px;
   min-height: 276px;
   margin-bottom: 30px;
   padding: 24px 30px 26px;
@@ -396,10 +419,41 @@ body.nav-open .menu-toggle span + span {
   border: 1px solid rgba(81, 117, 140, 0.2);
   border-radius: 8px;
   box-shadow:
-    0 28px 68px rgba(47, 42, 34, 0.09),
+    0 22px 52px rgba(47, 42, 34, 0.055),
     0 0 34px rgba(81, 117, 140, calc(var(--ripple-opacity) * 0.45)),
     inset 0 1px 0 rgba(255, 255, 255, 0.82),
     inset 0 0 0 1px rgba(81, 117, 140, calc(var(--ripple-opacity) * 0.55));
+  clip-path: polygon(
+    0 0,
+    16% calc(0% + var(--t1)),
+    32% calc(0% + var(--t2)),
+    50% calc(0% + var(--t3)),
+    68% calc(0% + var(--t4)),
+    84% calc(0% + var(--t5)),
+    100% 0,
+    calc(100% + var(--r1)) 16%,
+    calc(100% + var(--r2)) 32%,
+    calc(100% + var(--r3)) 50%,
+    calc(100% + var(--r4)) 68%,
+    calc(100% + var(--r5)) 84%,
+    100% 100%,
+    84% calc(100% + var(--b5)),
+    68% calc(100% + var(--b4)),
+    50% calc(100% + var(--b3)),
+    32% calc(100% + var(--b2)),
+    16% calc(100% + var(--b1)),
+    0 100%,
+    calc(0% + var(--l5)) 84%,
+    calc(0% + var(--l4)) 68%,
+    calc(0% + var(--l3)) 50%,
+    calc(0% + var(--l2)) 32%,
+    calc(0% + var(--l1)) 16%
+  );
+  filter: drop-shadow(0 26px 30px rgba(47, 42, 34, 0.07));
+  transform: perspective(1100px) rotateX(var(--paper-tilt-x)) rotateY(var(--paper-tilt-y)) translate3d(0, var(--paper-lift), 0);
+  transform-style: preserve-3d;
+  transition: box-shadow 260ms ease, filter 260ms ease, transform 420ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: clip-path, transform;
 }
 
 .hero-space::before,

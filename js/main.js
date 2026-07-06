@@ -275,6 +275,26 @@
     if (!card) return;
 
     const pointer = { active: false, x: 0, y: 0, side: "top", strength: 0, target: 0 };
+    const warpStops = [0.14, 0.3, 0.5, 0.7, 0.86];
+    const warpSides = [
+      { name: "top", prefix: "t", direction: 1 },
+      { name: "right", prefix: "r", direction: 1 },
+      { name: "bottom", prefix: "b", direction: 1 },
+      { name: "left", prefix: "l", direction: -1 }
+    ];
+
+    const resetWarp = () => {
+      warpSides.forEach((side) => {
+        warpStops.forEach((_, index) => {
+          card.style.setProperty(`--${side.prefix}${index + 1}`, "0px");
+        });
+      });
+    };
+
+    if (reduceMotion) {
+      resetWarp();
+      return;
+    }
 
     const syncPointer = (event) => {
       const rect = card.getBoundingClientRect();
@@ -292,6 +312,9 @@
       card.style.setProperty("--ripple-y", `${y}px`);
       card.style.setProperty("--ripple-opacity", (0.04 + strength * 0.18).toFixed(3));
       card.style.setProperty("--ripple-size", `${Math.round(145 + strength * 80)}px`);
+      card.style.setProperty("--paper-lift", `${(-1 - strength * 1.4).toFixed(2)}px`);
+      card.style.setProperty("--paper-tilt-x", `${((0.5 - y / rect.height) * strength * 1.25).toFixed(2)}deg`);
+      card.style.setProperty("--paper-tilt-y", `${((x / rect.width - 0.5) * strength * 1.25).toFixed(2)}deg`);
       pointer.active = true;
       pointer.x = x;
       pointer.y = y;
@@ -307,11 +330,12 @@
         pointer.target = 0;
         card.style.setProperty("--ripple-opacity", "0.04");
         card.style.setProperty("--ripple-size", "150px");
+        card.style.setProperty("--paper-lift", "-1px");
+        card.style.setProperty("--paper-tilt-x", "0deg");
+        card.style.setProperty("--paper-tilt-y", "0deg");
       },
       { passive: true }
     );
-
-    if (reduceMotion) return;
 
     const canvas = card.querySelector("[data-identity-ripple]");
     if (!canvas) return;
@@ -338,6 +362,23 @@
     };
 
     const projection = (side) => (side === "top" || side === "bottom" ? pointer.x : pointer.y);
+
+    const syncWarp = (time) => {
+      warpSides.forEach((side) => {
+        const axis = side.name === "top" || side.name === "bottom" ? width : height;
+        const focus = pointer.active ? projection(side.name) / Math.max(axis, 1) : 0.5;
+        const sideStrength = side.name === pointer.side ? pointer.strength : pointer.strength * 0.16;
+
+        warpStops.forEach((stop, index) => {
+          const distance = Math.abs(stop - focus);
+          const envelope = Math.exp(-Math.pow(distance / 0.24, 2));
+          const softDrift = Math.sin(time * 0.0014 + index * 0.92) * 0.22 * (1 - sideStrength);
+          const ripple = Math.sin(distance * 18 - time * 0.0065) * envelope * sideStrength * 7.2;
+          const value = (ripple + softDrift) * side.direction;
+          card.style.setProperty(`--${side.prefix}${index + 1}`, `${value.toFixed(2)}px`);
+        });
+      });
+    };
 
     const waveOffset = (side, position, time) => {
       const axis = side === "top" || side === "bottom" ? width : height;
@@ -386,6 +427,7 @@
     const draw = (time) => {
       ctx.clearRect(0, 0, width, height);
       pointer.strength += (pointer.target - pointer.strength) * 0.08;
+      syncWarp(time);
 
       if (pointer.active && pointer.target > 0.25 && time - lastRipple > 260) {
         ripples.push({ x: pointer.x, y: pointer.y, side: pointer.side, born: time });
