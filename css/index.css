@@ -379,81 +379,62 @@ body.nav-open .menu-toggle span + span {
   padding-top: 0;
 }
 
-.hero-space {
+.identity-card-shell {
   position: relative;
-  overflow: hidden;
+  isolation: isolate;
+  margin: -12px -18px 30px;
+  padding: 18px;
   --ripple-x: 50%;
   --ripple-y: 50%;
   --ripple-opacity: 0.04;
   --ripple-size: 150px;
+  --edge-x: 50%;
+  --edge-y: 50%;
+  --edge-glow: 0.13;
   --paper-lift: -1px;
   --paper-tilt-x: 0deg;
   --paper-tilt-y: 0deg;
-  --t1: 0px;
-  --t2: 0px;
-  --t3: 0px;
-  --t4: 0px;
-  --t5: 0px;
-  --r1: 0px;
-  --r2: 0px;
-  --r3: 0px;
-  --r4: 0px;
-  --r5: 0px;
-  --b1: 0px;
-  --b2: 0px;
-  --b3: 0px;
-  --b4: 0px;
-  --b5: 0px;
-  --l1: 0px;
-  --l2: 0px;
-  --l3: 0px;
-  --l4: 0px;
-  --l5: 0px;
+}
+
+.identity-card-shell::before {
+  content: "";
+  position: absolute;
+  inset: 9px 12px;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at var(--edge-x) var(--edge-y), rgba(105, 132, 112, calc(var(--edge-glow) * 0.72)), transparent 24%),
+    radial-gradient(circle at calc(100% - var(--edge-x)) calc(100% - var(--edge-y)), rgba(210, 174, 114, calc(var(--edge-glow) * 0.54)), transparent 28%),
+    linear-gradient(120deg, rgba(81, 117, 140, 0.08), rgba(255, 255, 255, 0.02) 38%, rgba(105, 132, 112, 0.07));
+  border-radius: 18px;
+  filter: blur(22px);
+  opacity: 0.78;
+  transform: translate3d(0, 8px, 0);
+}
+
+.hero-space {
+  position: relative;
+  z-index: 2;
+  overflow: hidden;
   min-height: 276px;
-  margin-bottom: 30px;
+  margin-bottom: 0;
   padding: 24px 30px 26px;
   background:
     linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(246, 250, 249, 0.84)),
     linear-gradient(118deg, rgba(81, 117, 140, 0.1), transparent 18%, transparent 58%, rgba(105, 132, 112, 0.1)),
     repeating-linear-gradient(90deg, rgba(64, 100, 112, 0.04) 0 1px, transparent 1px 46px);
   border: 1px solid rgba(81, 117, 140, 0.2);
-  border-radius: 8px;
+  border-radius: 10px;
   box-shadow:
-    0 22px 52px rgba(47, 42, 34, 0.055),
+    0 20px 48px rgba(47, 42, 34, 0.05),
     0 0 34px rgba(81, 117, 140, calc(var(--ripple-opacity) * 0.45)),
     inset 0 1px 0 rgba(255, 255, 255, 0.82),
     inset 0 0 0 1px rgba(81, 117, 140, calc(var(--ripple-opacity) * 0.55));
-  clip-path: polygon(
-    0 0,
-    16% calc(0% + var(--t1)),
-    32% calc(0% + var(--t2)),
-    50% calc(0% + var(--t3)),
-    68% calc(0% + var(--t4)),
-    84% calc(0% + var(--t5)),
-    100% 0,
-    calc(100% + var(--r1)) 16%,
-    calc(100% + var(--r2)) 32%,
-    calc(100% + var(--r3)) 50%,
-    calc(100% + var(--r4)) 68%,
-    calc(100% + var(--r5)) 84%,
-    100% 100%,
-    84% calc(100% + var(--b5)),
-    68% calc(100% + var(--b4)),
-    50% calc(100% + var(--b3)),
-    32% calc(100% + var(--b2)),
-    16% calc(100% + var(--b1)),
-    0 100%,
-    calc(0% + var(--l5)) 84%,
-    calc(0% + var(--l4)) 68%,
-    calc(0% + var(--l3)) 50%,
-    calc(0% + var(--l2)) 32%,
-    calc(0% + var(--l1)) 16%
-  );
-  filter: drop-shadow(0 26px 30px rgba(47, 42, 34, 0.07));
+  filter: drop-shadow(0 24px 28px rgba(47, 42, 34, 0.065));
   transform: perspective(1100px) rotateX(var(--paper-tilt-x)) rotateY(var(--paper-tilt-y)) translate3d(0, var(--paper-lift), 0);
   transform-style: preserve-3d;
   transition: box-shadow 260ms ease, filter 260ms ease, transform 420ms cubic-bezier(0.22, 1, 0.36, 1);
-  will-change: clip-path, transform;
+  will-change: transform;
 }
 
 .hero-space::before,
@@ -481,14 +462,14 @@ body.nav-open .menu-toggle span + span {
     linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.68));
 }
 
-.identity-ripple-field {
+.identity-edge-field {
   position: absolute;
   inset: 0;
-  z-index: 0;
+  z-index: 3;
   display: block;
   width: 100%;
   height: 100%;
-  opacity: 0.78;
+  opacity: 1;
   pointer-events: none;
 }
 
@@ -929,6 +910,11 @@ body.nav-open .menu-toggle span + span {
     grid-column: 1 / -1;
   }
 
+  .identity-card-shell {
+    margin: -10px -12px 24px;
+    padding: 12px;
+  }
+
   .hero-space {
     min-height: 310px;
     padding: 22px;
@@ -983,13 +969,17 @@ body.nav-open .menu-toggle span + span {
     font-size: 27px;
   }
 
+  .identity-card-shell {
+    margin: 0 -8px 24px;
+    padding: 8px;
+  }
+
   .hero-space {
-    margin-bottom: 24px;
     padding: 18px;
   }
 
-  .identity-ripple-field {
-    opacity: 0.54;
+  .identity-edge-field {
+    opacity: 0.72;
   }
 
   .hero-kicker {

@@ -271,192 +271,344 @@
   };
 
   const initIdentityCard = () => {
-    const card = document.querySelector("[data-identity-card]");
-    if (!card) return;
+    const shell = document.querySelector("[data-identity-card]");
+    if (!shell || reduceMotion) return;
 
-    const pointer = { active: false, x: 0, y: 0, side: "top", strength: 0, target: 0 };
-    const warpStops = [0.14, 0.3, 0.5, 0.7, 0.86];
-    const warpSides = [
-      { name: "top", prefix: "t", direction: 1 },
-      { name: "right", prefix: "r", direction: 1 },
-      { name: "bottom", prefix: "b", direction: 1 },
-      { name: "left", prefix: "l", direction: -1 }
-    ];
-
-    const resetWarp = () => {
-      warpSides.forEach((side) => {
-        warpStops.forEach((_, index) => {
-          card.style.setProperty(`--${side.prefix}${index + 1}`, "0px");
-        });
-      });
-    };
-
-    if (reduceMotion) {
-      resetWarp();
-      return;
-    }
-
-    const syncPointer = (event) => {
-      const rect = card.getBoundingClientRect();
-      const x = event.clientX - rect.left;
-      const y = event.clientY - rect.top;
-      const distances = [
-        ["top", y],
-        ["right", rect.width - x],
-        ["bottom", rect.height - y],
-        ["left", x]
-      ];
-      const nearest = distances.sort((a, b) => a[1] - b[1])[0];
-      const strength = Math.max(0, Math.min(1, 1 - nearest[1] / 130));
-      card.style.setProperty("--ripple-x", `${x}px`);
-      card.style.setProperty("--ripple-y", `${y}px`);
-      card.style.setProperty("--ripple-opacity", (0.04 + strength * 0.18).toFixed(3));
-      card.style.setProperty("--ripple-size", `${Math.round(145 + strength * 80)}px`);
-      card.style.setProperty("--paper-lift", `${(-1 - strength * 1.4).toFixed(2)}px`);
-      card.style.setProperty("--paper-tilt-x", `${((0.5 - y / rect.height) * strength * 1.25).toFixed(2)}deg`);
-      card.style.setProperty("--paper-tilt-y", `${((x / rect.width - 0.5) * strength * 1.25).toFixed(2)}deg`);
-      pointer.active = true;
-      pointer.x = x;
-      pointer.y = y;
-      pointer.side = nearest[0];
-      pointer.target = strength;
-    };
-
-    card.addEventListener("pointermove", syncPointer, { passive: true });
-    card.addEventListener(
-      "pointerleave",
-      () => {
-        pointer.active = false;
-        pointer.target = 0;
-        card.style.setProperty("--ripple-opacity", "0.04");
-        card.style.setProperty("--ripple-size", "150px");
-        card.style.setProperty("--paper-lift", "-1px");
-        card.style.setProperty("--paper-tilt-x", "0deg");
-        card.style.setProperty("--paper-tilt-y", "0deg");
-      },
-      { passive: true }
-    );
-
-    const canvas = card.querySelector("[data-identity-ripple]");
-    if (!canvas) return;
+    const paper = shell.querySelector("[data-identity-paper]");
+    const canvas = shell.querySelector("[data-identity-edge]");
+    if (!paper || !canvas) return;
 
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
+    const pointer = { active: false, cx: 0, cy: 0, px: 0, py: 0, side: "top", strength: 0, target: 0 };
+    const palette = [
+      [55, 91, 108],
+      [93, 128, 111],
+      [205, 171, 112],
+      [224, 235, 233],
+      [128, 158, 176]
+    ];
+
     let width = 0;
     let height = 0;
+    let paperBox = { x: 0, y: 0, w: 0, h: 0 };
+    let particles = [];
+    let waves = [];
     let frameId = null;
     let resizeTimer = null;
-    let lastRipple = 0;
-    let ripples = [];
+    let lastWave = 0;
+
+    const rand = (min, max) => Math.random() * (max - min) + min;
+    const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+
+    const edgePoint = (distance) => {
+      const perimeter = Math.max(1, 2 * (paperBox.w + paperBox.h));
+      let d = ((distance % perimeter) + perimeter) % perimeter;
+      let x = paperBox.x;
+      let y = paperBox.y;
+      let nx = 0;
+      let ny = -1;
+      let tx = 1;
+      let ty = 0;
+      let side = "top";
+
+      if (d < paperBox.w) {
+        x += d;
+      } else if (d < paperBox.w + paperBox.h) {
+        d -= paperBox.w;
+        x += paperBox.w;
+        y += d;
+        nx = 1;
+        ny = 0;
+        tx = 0;
+        ty = 1;
+        side = "right";
+      } else if (d < paperBox.w * 2 + paperBox.h) {
+        d -= paperBox.w + paperBox.h;
+        x += paperBox.w - d;
+        y += paperBox.h;
+        nx = 0;
+        ny = 1;
+        tx = -1;
+        ty = 0;
+        side = "bottom";
+      } else {
+        d -= paperBox.w * 2 + paperBox.h;
+        y += paperBox.h - d;
+        nx = -1;
+        ny = 0;
+        tx = 0;
+        ty = -1;
+        side = "left";
+      }
+
+      const outward = rand(-0.6, 8.4);
+      const tangent = rand(-1.8, 1.8);
+      return {
+        x: x + nx * outward + tx * tangent,
+        y: y + ny * outward + ty * tangent,
+        nx,
+        ny,
+        tx,
+        ty,
+        side
+      };
+    };
 
     const rebuild = () => {
-      const rect = card.getBoundingClientRect();
-      width = Math.max(280, Math.round(rect.width));
-      height = Math.max(230, Math.round(rect.height));
-      const ratio = Math.min(window.devicePixelRatio || 1, 2);
+      const shellRect = shell.getBoundingClientRect();
+      const paperRect = paper.getBoundingClientRect();
+      width = Math.max(300, Math.round(shellRect.width));
+      height = Math.max(240, Math.round(shellRect.height));
+      paperBox = {
+        x: paperRect.left - shellRect.left,
+        y: paperRect.top - shellRect.top,
+        w: paperRect.width,
+        h: paperRect.height
+      };
 
+      const ratio = Math.min(window.devicePixelRatio || 1, 2);
       canvas.width = Math.round(width * ratio);
       canvas.height = Math.round(height * ratio);
       ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
-    };
 
-    const projection = (side) => (side === "top" || side === "bottom" ? pointer.x : pointer.y);
+      const previous = particles;
+      const perimeter = 2 * (paperBox.w + paperBox.h);
+      const targetCount = clamp(Math.round(perimeter / (width < 520 ? 7.3 : 6.1)), 160, width < 520 ? 220 : 380);
 
-    const syncWarp = (time) => {
-      warpSides.forEach((side) => {
-        const axis = side.name === "top" || side.name === "bottom" ? width : height;
-        const focus = pointer.active ? projection(side.name) / Math.max(axis, 1) : 0.5;
-        const sideStrength = side.name === pointer.side ? pointer.strength : pointer.strength * 0.16;
-
-        warpStops.forEach((stop, index) => {
-          const distance = Math.abs(stop - focus);
-          const envelope = Math.exp(-Math.pow(distance / 0.24, 2));
-          const softDrift = Math.sin(time * 0.0014 + index * 0.92) * 0.22 * (1 - sideStrength);
-          const ripple = Math.sin(distance * 18 - time * 0.0065) * envelope * sideStrength * 7.2;
-          const value = (ripple + softDrift) * side.direction;
-          card.style.setProperty(`--${side.prefix}${index + 1}`, `${value.toFixed(2)}px`);
-        });
+      particles = Array.from({ length: targetCount }, (_, index) => {
+        const target = edgePoint((perimeter * index) / targetCount + rand(-2.5, 2.5));
+        const old = previous[index % Math.max(previous.length, 1)];
+        const color = palette[Math.floor(rand(0, palette.length))];
+        return {
+          x: old ? old.x : target.x + rand(-20, 20),
+          y: old ? old.y : target.y + rand(-20, 20),
+          tx: target.x,
+          ty: target.y,
+          nx: target.nx,
+          ny: target.ny,
+          tangentX: target.tx,
+          tangentY: target.ty,
+          side: target.side,
+          vx: old ? old.vx * 0.35 : 0,
+          vy: old ? old.vy * 0.35 : 0,
+          r: rand(0.55, 1.65),
+          phase: rand(0, Math.PI * 2),
+          color,
+          glow: old ? old.glow * 0.6 : 0
+        };
       });
     };
 
-    const waveOffset = (side, position, time) => {
-      const axis = side === "top" || side === "bottom" ? width : height;
-      const focus = pointer.active ? projection(side) : axis * 0.5;
-      const distance = Math.abs(position - focus);
-      const envelope = Math.exp(-Math.pow(distance / Math.max(axis * 0.22, 82), 2));
-      const direction = side === "top" || side === "left" ? 1 : -1;
-      const base = Math.sin(position * 0.035 + time * 0.0022) * 0.55;
-      const ripple = Math.sin(distance * 0.12 - time * 0.011) * envelope * pointer.strength * 7.5;
-      return direction * (base + ripple);
+    const addWave = (time) => {
+      if (pointer.target < 0.25 || time - lastWave < 210) return;
+      waves.push({
+        x: pointer.cx,
+        y: pointer.cy,
+        side: pointer.side,
+        born: time,
+        strength: pointer.target
+      });
+      lastWave = time;
     };
 
-    const drawEdge = (side, time) => {
-      const steps = 34;
+    const syncPointer = (event) => {
+      const shellRect = shell.getBoundingClientRect();
+      const paperRect = paper.getBoundingClientRect();
+      const px = event.clientX - paperRect.left;
+      const py = event.clientY - paperRect.top;
+      const distances = [
+        { side: "top", value: py },
+        { side: "right", value: paperRect.width - px },
+        { side: "bottom", value: paperRect.height - py },
+        { side: "left", value: px }
+      ];
+      const nearest = distances.sort((a, b) => Math.abs(a.value) - Math.abs(b.value))[0];
+      const edgeRadius = width < 520 ? 116 : 160;
+      const strength = clamp(1 - Math.abs(nearest.value) / edgeRadius, 0, 1);
+
+      pointer.active = true;
+      pointer.cx = event.clientX - shellRect.left;
+      pointer.cy = event.clientY - shellRect.top;
+      pointer.px = px;
+      pointer.py = py;
+      pointer.side = nearest.side;
+      pointer.target = strength;
+
+      shell.style.setProperty("--edge-x", `${pointer.cx}px`);
+      shell.style.setProperty("--edge-y", `${pointer.cy}px`);
+      shell.style.setProperty("--edge-glow", (0.13 + strength * 0.32).toFixed(3));
+      shell.style.setProperty("--ripple-x", `${px}px`);
+      shell.style.setProperty("--ripple-y", `${py}px`);
+      shell.style.setProperty("--ripple-opacity", (0.04 + strength * 0.16).toFixed(3));
+      shell.style.setProperty("--ripple-size", `${Math.round(150 + strength * 92)}px`);
+      shell.style.setProperty("--paper-lift", `${(-1 - strength * 1.15).toFixed(2)}px`);
+      shell.style.setProperty("--paper-tilt-x", `${((0.5 - py / paperRect.height) * strength * 0.95).toFixed(2)}deg`);
+      shell.style.setProperty("--paper-tilt-y", `${((px / paperRect.width - 0.5) * strength * 0.95).toFixed(2)}deg`);
+
+      addWave(performance.now());
+    };
+
+    const clearPointer = () => {
+      pointer.active = false;
+      pointer.target = 0;
+      shell.style.setProperty("--edge-glow", "0.13");
+      shell.style.setProperty("--ripple-opacity", "0.04");
+      shell.style.setProperty("--ripple-size", "150px");
+      shell.style.setProperty("--paper-lift", "-1px");
+      shell.style.setProperty("--paper-tilt-x", "0deg");
+      shell.style.setProperty("--paper-tilt-y", "0deg");
+    };
+
+    const drawPaperPath = (offset = 0) => {
+      const radius = 12 + offset * 0.2;
+      const x = paperBox.x - offset;
+      const y = paperBox.y - offset;
+      const w = paperBox.w + offset * 2;
+      const h = paperBox.h + offset * 2;
       ctx.beginPath();
+      ctx.moveTo(x + radius, y);
+      ctx.lineTo(x + w - radius, y);
+      ctx.quadraticCurveTo(x + w, y, x + w, y + radius);
+      ctx.lineTo(x + w, y + h - radius);
+      ctx.quadraticCurveTo(x + w, y + h, x + w - radius, y + h);
+      ctx.lineTo(x + radius, y + h);
+      ctx.quadraticCurveTo(x, y + h, x, y + h - radius);
+      ctx.lineTo(x, y + radius);
+      ctx.quadraticCurveTo(x, y, x + radius, y);
+    };
 
-      for (let index = 0; index <= steps; index += 1) {
-        const t = index / steps;
-        let x = t * width;
-        let y = t * height;
+    const drawSoftFrame = () => {
+      const frameGradient = ctx.createLinearGradient(paperBox.x, paperBox.y, paperBox.x + paperBox.w, paperBox.y + paperBox.h);
+      frameGradient.addColorStop(0, `rgba(81, 117, 140, ${0.1 + pointer.strength * 0.13})`);
+      frameGradient.addColorStop(0.48, `rgba(224, 235, 233, ${0.24 + pointer.strength * 0.16})`);
+      frameGradient.addColorStop(1, `rgba(205, 171, 112, ${0.1 + pointer.strength * 0.12})`);
 
-        if (side === "top") {
-          x = t * width;
-          y = 1.5 + waveOffset(side, x, time);
-        } else if (side === "bottom") {
-          x = t * width;
-          y = height - 1.5 + waveOffset(side, x, time);
-        } else if (side === "left") {
-          x = 1.5 + waveOffset(side, y, time);
-          y = t * height;
-        } else {
-          x = width - 1.5 + waveOffset(side, y, time);
-          y = t * height;
+      ctx.save();
+      ctx.shadowColor = `rgba(105, 132, 112, ${0.16 + pointer.strength * 0.16})`;
+      ctx.shadowBlur = 10 + pointer.strength * 18;
+      ctx.lineWidth = 1.05 + pointer.strength * 0.75;
+      ctx.strokeStyle = frameGradient;
+      drawPaperPath(2.4);
+      ctx.stroke();
+      ctx.restore();
+    };
+
+    const drawWaves = (time) => {
+      waves = waves.filter((wave) => time - wave.born < 1700);
+      waves.forEach((wave) => {
+        const age = (time - wave.born) / 1700;
+        const alpha = (1 - age) * 0.38 * wave.strength;
+        const spread = 42 + age * 155;
+        const lift = Math.sin(age * Math.PI) * 14 * wave.strength;
+        let nx = 0;
+        let ny = -1;
+
+        if (wave.side === "right") {
+          nx = 1;
+          ny = 0;
+        } else if (wave.side === "bottom") {
+          nx = 0;
+          ny = 1;
+        } else if (wave.side === "left") {
+          nx = -1;
+          ny = 0;
         }
 
-        if (index === 0) ctx.moveTo(x, y);
-        else ctx.lineTo(x, y);
-      }
+        ctx.save();
+        ctx.lineCap = "round";
+        ctx.shadowColor = `rgba(205, 171, 112, ${alpha * 0.6})`;
+        ctx.shadowBlur = 8 + wave.strength * 10;
+        ctx.lineWidth = 1.25 + wave.strength * 0.5;
+        ctx.strokeStyle = `rgba(90, 126, 139, ${alpha})`;
+        ctx.beginPath();
 
-      const active = pointer.side === side ? pointer.strength : pointer.strength * 0.25;
-      ctx.strokeStyle = `rgba(81, 117, 140, ${0.07 + active * 0.18})`;
-      ctx.lineWidth = 1.1 + active * 1.1;
-      ctx.stroke();
+        if (wave.side === "top" || wave.side === "bottom") {
+          const y = wave.y + ny * lift;
+          ctx.moveTo(wave.x - spread, y);
+          ctx.quadraticCurveTo(wave.x, y + ny * lift * 0.9, wave.x + spread, y);
+        } else {
+          const x = wave.x + nx * lift;
+          ctx.moveTo(x, wave.y - spread);
+          ctx.quadraticCurveTo(x + nx * lift * 0.9, wave.y, x, wave.y + spread);
+        }
+
+        ctx.stroke();
+        ctx.restore();
+      });
     };
 
     const draw = (time) => {
       ctx.clearRect(0, 0, width, height);
-      pointer.strength += (pointer.target - pointer.strength) * 0.08;
-      syncWarp(time);
+      pointer.strength += (pointer.target - pointer.strength) * 0.075;
 
-      if (pointer.active && pointer.target > 0.25 && time - lastRipple > 260) {
-        ripples.push({ x: pointer.x, y: pointer.y, side: pointer.side, born: time });
-        lastRipple = time;
-      }
+      drawSoftFrame();
+      drawWaves(time);
 
-      ctx.save();
-      ctx.lineCap = "round";
-      ctx.lineJoin = "round";
-      drawEdge("top", time);
-      drawEdge("right", time);
-      drawEdge("bottom", time);
-      drawEdge("left", time);
+      particles.forEach((particle) => {
+        const idle = Math.sin(time * 0.001 + particle.phase) * 0.9;
+        const shimmer = Math.cos(time * 0.00072 + particle.phase) * 0.45;
+        const restX = particle.tx + particle.nx * idle + particle.tangentX * shimmer;
+        const restY = particle.ty + particle.ny * idle + particle.tangentY * shimmer;
 
-      ripples = ripples.filter((ripple) => time - ripple.born < 1600);
-      ripples.forEach((ripple) => {
-        const age = (time - ripple.born) / 1600;
-        const radius = 18 + age * 115;
-        const alpha = (1 - age) * 0.16;
+        particle.vx += (restX - particle.x) * 0.018;
+        particle.vy += (restY - particle.y) * 0.018;
+
+        if (pointer.active && pointer.strength > 0.01) {
+          const dx = particle.x - pointer.cx;
+          const dy = particle.y - pointer.cy;
+          const distance = Math.hypot(dx, dy);
+          const radius = width < 520 ? 110 : 154;
+
+          if (distance > 0 && distance < radius) {
+            const force = Math.pow(1 - distance / radius, 2) * pointer.strength;
+            particle.vx += (dx / distance) * force * 2.35 + (-dy / distance) * force * 0.42;
+            particle.vy += (dy / distance) * force * 2.35 + (dx / distance) * force * 0.42;
+            particle.glow = Math.max(particle.glow, force * 1.35);
+          }
+        }
+
+        particle.vx *= 0.9;
+        particle.vy *= 0.9;
+        particle.x += particle.vx;
+        particle.y += particle.vy;
+        particle.glow *= 0.9;
+
+        const [r, g, b] = particle.color;
+        const speed = Math.hypot(particle.vx, particle.vy);
+        const alpha = 0.28 + particle.glow * 0.58 + Math.sin(time * 0.001 + particle.phase) * 0.035;
+
+        if (speed > 0.055 || particle.glow > 0.045) {
+          ctx.beginPath();
+          ctx.moveTo(particle.x - particle.vx * 6.4, particle.y - particle.vy * 6.4);
+          ctx.lineTo(particle.x, particle.y);
+          ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, ${Math.min(0.38, particle.glow * 0.42 + 0.045)})`;
+          ctx.lineWidth = Math.max(0.5, particle.r * 0.8);
+          ctx.stroke();
+        }
+
+        if (particle.glow > 0.065) {
+          const gradient = ctx.createRadialGradient(particle.x, particle.y, 0, particle.x, particle.y, particle.r * 8.2);
+          gradient.addColorStop(0, `rgba(${r}, ${g}, ${b}, ${particle.glow * 0.36})`);
+          gradient.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0)`);
+          ctx.fillStyle = gradient;
+          ctx.beginPath();
+          ctx.arc(particle.x, particle.y, particle.r * 8.2, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
         ctx.beginPath();
-        ctx.ellipse(ripple.x, ripple.y, radius * 1.3, radius * 0.42, 0, 0, Math.PI * 2);
-        ctx.strokeStyle = `rgba(81, 117, 140, ${alpha})`;
-        ctx.lineWidth = 1;
-        ctx.stroke();
+        ctx.arc(particle.x, particle.y, particle.r, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${clamp(alpha, 0.22, 0.82)})`;
+        ctx.fill();
       });
-      ctx.restore();
 
       frameId = window.requestAnimationFrame(draw);
     };
+
+    shell.addEventListener("pointermove", syncPointer, { passive: true });
+    shell.addEventListener("pointerleave", clearPointer, { passive: true });
 
     window.addEventListener(
       "resize",
