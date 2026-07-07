@@ -270,235 +270,313 @@
     frameId = window.requestAnimationFrame(draw);
   };
 
-  const initIdentityCardPhysics = () => {
-    const shell = document.querySelector("[data-identity-card]");
-    if (!shell) return;
+  const initParticlePet = () => {
+    const stage = document.querySelector("[data-particle-pet]");
+    if (!stage || reduceMotion) return;
 
-    const paper = shell.querySelector("[data-identity-paper]");
-    if (!paper || reduceMotion) return;
+    const canvas = stage.querySelector("canvas");
+    if (!canvas) return;
 
-    const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
-    const rand = (min, max) => Math.random() * (max - min) + min;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
 
-    const state = {
-      x: 0,
-      y: 0,
-      sheen: 0,
-      dent: 0,
-      shadow: 0.052,
-      contact: 0.035,
-      edgeGlow: 0,
-      fiberX: 0,
-      fiberY: 0
-    };
-    const target = { ...state };
-    const pointer = {
-      active: false,
-      x: 0,
-      y: 0,
-      vx: 0,
-      vy: 0,
-      lastX: 0,
-      lastY: 0,
-      lastT: 0
-    };
+    const pointer = { active: false, x: 0, y: 0 };
     let width = 0;
     let height = 0;
-    let points = [];
+    let particles = [];
     let frameId = null;
     let resizeTimer = null;
 
-    const setVar = (name, value) => shell.style.setProperty(name, value);
+    const rand = (min, max) => Math.random() * (max - min) + min;
 
-    const addPoint = (x, y, nx, ny) => {
-      const fiber = rand(-0.45, 0.45);
-      points.push({
-        restX: x + nx * fiber,
-        restY: y + ny * fiber,
-        x: x + nx * fiber,
-        y: y + ny * fiber,
-        vx: 0,
-        vy: 0,
-        nx,
-        ny
+    const roundedRect = (context, x, y, w, h, r) => {
+      context.beginPath();
+      context.moveTo(x + r, y);
+      context.lineTo(x + w - r, y);
+      context.quadraticCurveTo(x + w, y, x + w, y + r);
+      context.lineTo(x + w, y + h - r);
+      context.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+      context.lineTo(x + r, y + h);
+      context.quadraticCurveTo(x, y + h, x, y + h - r);
+      context.lineTo(x, y + r);
+      context.quadraticCurveTo(x, y, x + r, y);
+      context.fill();
+    };
+
+    const drawElephant = (context, boxWidth, boxHeight) => {
+      const scale = Math.min(boxWidth / 224, boxHeight / 176);
+      const offsetX = (boxWidth - 224 * scale) / 2;
+      const offsetY = (boxHeight - 176 * scale) / 2 + 6 * scale;
+      const x = (value) => offsetX + value * scale;
+      const y = (value) => offsetY + value * scale;
+
+      context.clearRect(0, 0, boxWidth, boxHeight);
+      context.fillStyle = "#111";
+      context.strokeStyle = "#111";
+      context.lineCap = "round";
+      context.lineJoin = "round";
+
+      context.beginPath();
+      context.ellipse(x(94), y(82), 54 * scale, 33 * scale, -0.04, 0, Math.PI * 2);
+      context.fill();
+
+      context.beginPath();
+      context.ellipse(x(132), y(72), 22 * scale, 28 * scale, -0.18, 0, Math.PI * 2);
+      context.fill();
+
+      context.beginPath();
+      context.ellipse(x(150), y(77), 28 * scale, 25 * scale, 0.08, 0, Math.PI * 2);
+      context.fill();
+
+      context.lineWidth = 18 * scale;
+      context.beginPath();
+      context.moveTo(x(169), y(86));
+      context.bezierCurveTo(x(190), y(100), x(176), y(133), x(151), y(125));
+      context.stroke();
+
+      context.lineWidth = 4.4 * scale;
+      context.beginPath();
+      context.moveTo(x(168), y(86));
+      context.quadraticCurveTo(x(189), y(88), x(198), y(80));
+      context.stroke();
+
+      context.lineWidth = 5 * scale;
+      context.beginPath();
+      context.moveTo(x(42), y(75));
+      context.quadraticCurveTo(x(24), y(64), x(28), y(51));
+      context.stroke();
+
+      [58, 82, 112, 136].forEach((legX, index) => {
+        const h = index % 2 === 0 ? 40 : 36;
+        roundedRect(context, x(legX), y(101), 15 * scale, h * scale, 7 * scale);
+        context.beginPath();
+        context.ellipse(x(legX + 7), y(101 + h), 11 * scale, 5 * scale, 0, 0, Math.PI * 2);
+        context.fill();
+      });
+
+      context.beginPath();
+      context.ellipse(x(156), y(70), 3.5 * scale, 3.5 * scale, 0, 0, Math.PI * 2);
+      context.fill();
+    };
+
+    const makeTargets = () => {
+      const offscreen = document.createElement("canvas");
+      offscreen.width = width;
+      offscreen.height = height;
+      const offCtx = offscreen.getContext("2d");
+      if (!offCtx) return [];
+
+      drawElephant(offCtx, width, height);
+      const imageData = offCtx.getImageData(0, 0, width, height).data;
+      const step = width < 190 ? 3 : 2;
+      let targets = [];
+
+      const eye = { x: width * 0.7, y: height * 0.4 };
+      const tusk = { x: width * 0.83, y: height * 0.46 };
+      const scale = Math.min(width / 224, height / 176);
+      const offsetX = (width - 224 * scale) / 2;
+      const offsetY = (height - 176 * scale) / 2 + 6 * scale;
+      const sx = (value) => offsetX + value * scale;
+      const sy = (value) => offsetY + value * scale;
+      const outlineColor = "rgba(76, 112, 126, 0.58)";
+      const softOutlineColor = "rgba(126, 157, 162, 0.5)";
+      const addPoint = (x, y, zone, color, size = rand(0.58, 1.08)) => {
+        targets.push({
+          x: x + rand(-0.72, 0.72),
+          y: y + rand(-0.72, 0.72),
+          zone,
+          color,
+          size,
+          feature: true
+        });
+      };
+      const addEllipse = (cx, cy, rx, ry, rotation, count, zone, color) => {
+        for (let i = 0; i < count; i += 1) {
+          const angle = (i / count) * Math.PI * 2;
+          const cos = Math.cos(angle);
+          const sin = Math.sin(angle);
+          const rotatedX = cos * rx * Math.cos(rotation) - sin * ry * Math.sin(rotation);
+          const rotatedY = cos * rx * Math.sin(rotation) + sin * ry * Math.cos(rotation);
+          addPoint(sx(cx) + rotatedX * scale, sy(cy) + rotatedY * scale, zone, color, rand(0.62, 1.16));
+        }
+      };
+      const cubicPoint = (a, b, c, d, t) => {
+        const mt = 1 - t;
+        return mt ** 3 * a + 3 * mt ** 2 * t * b + 3 * mt * t ** 2 * c + t ** 3 * d;
+      };
+      const addCurve = (x1, y1, x2, y2, x3, y3, x4, y4, count, zone, color) => {
+        for (let i = 0; i < count; i += 1) {
+          const t = i / Math.max(count - 1, 1);
+          addPoint(
+            sx(cubicPoint(x1, x2, x3, x4, t)),
+            sy(cubicPoint(y1, y2, y3, y4, t)),
+            zone,
+            color,
+            rand(0.66, 1.2)
+          );
+        }
+      };
+      const addLine = (x1, y1, x2, y2, count, zone, color) => {
+        for (let i = 0; i < count; i += 1) {
+          const t = i / Math.max(count - 1, 1);
+          addPoint(sx(x1 + (x2 - x1) * t), sy(y1 + (y2 - y1) * t), zone, color, rand(0.6, 1.1));
+        }
+      };
+
+      for (let py = 0; py < height; py += step) {
+        for (let px = 0; px < width; px += step) {
+          const alpha = imageData[(py * width + px) * 4 + 3];
+          if (alpha > 70) {
+            const nx = px / width;
+            const ny = py / height;
+            const isEye = Math.hypot(px - eye.x, py - eye.y) < 5;
+            const isTusk = Math.hypot(px - tusk.x, py - tusk.y) < 18 && ny < 0.55;
+            const zone = ny > 0.62 ? "leg" : nx > 0.66 ? "trunk" : nx > 0.53 && ny < 0.58 ? "head" : "body";
+            let color = "rgba(224, 236, 235, 0.72)";
+            if (Math.random() > 0.68) color = "rgba(242, 247, 245, 0.82)";
+            if (Math.random() > 0.84) color = "rgba(91, 122, 134, 0.48)";
+            if (isEye) color = "rgba(43, 78, 90, 0.76)";
+            if (isTusk) color = "rgba(207, 184, 143, 0.5)";
+            targets.push({
+              x: px + rand(-0.45, 0.45),
+              y: py + rand(-0.45, 0.45),
+              zone,
+              color
+            });
+          }
+        }
+      }
+
+      addEllipse(94, 82, 55, 34, -0.04, 180, "body", softOutlineColor);
+      addEllipse(132, 72, 22, 28, -0.18, 90, "head", softOutlineColor);
+      addEllipse(150, 77, 28, 25, 0.08, 112, "head", outlineColor);
+      addCurve(169, 86, 190, 100, 176, 133, 151, 125, 120, "trunk", outlineColor);
+      addCurve(168, 86, 187, 88, 191, 86, 198, 80, 44, "trunk", "rgba(201, 176, 131, 0.56)");
+      addCurve(42, 75, 31, 69, 24, 63, 28, 51, 42, "body", outlineColor);
+      [58, 82, 112, 136].forEach((legX) => {
+        addLine(legX, 103, legX, 139, 28, "leg", softOutlineColor);
+        addLine(legX + 15, 103, legX + 15, 139, 28, "leg", softOutlineColor);
+        addEllipse(legX + 7, 141, 11, 5, 0, 36, "leg", softOutlineColor);
+      });
+      for (let i = 0; i < 34; i += 1) {
+        addPoint(sx(156), sy(70), "head", "rgba(43, 78, 90, 0.78)", rand(0.72, 1.2));
+      }
+
+      const maxParticles = width < 190 ? 1450 : 2400;
+      if (targets.length > maxParticles) {
+        const stride = Math.ceil(targets.length / maxParticles);
+        targets = targets.filter((target, index) => target.feature || index % stride === 0);
+      }
+
+      return targets;
+    };
+
+    const rebuild = () => {
+      const rect = stage.getBoundingClientRect();
+      width = Math.round(rect.width);
+      height = Math.round(rect.height);
+      if (width < 80 || height < 80) return;
+
+      const ratio = Math.min(window.devicePixelRatio || 1, 2);
+      canvas.width = Math.round(width * ratio);
+      canvas.height = Math.round(height * ratio);
+      ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+
+      const previous = particles;
+      const targets = makeTargets();
+      particles = targets.map((target, index) => {
+        const old = previous[index % Math.max(previous.length, 1)];
+        return {
+          x: old ? old.x : target.x + rand(-36, 36),
+          y: old ? old.y : target.y + rand(-28, 28),
+          tx: target.x,
+          ty: target.y,
+          vx: old ? old.vx * 0.35 : 0,
+          vy: old ? old.vy * 0.35 : 0,
+          r: target.size || rand(0.52, 1.08),
+          phase: rand(0, Math.PI * 2),
+          swing: rand(1.2, 3.4),
+          zone: target.zone,
+          color: target.color
+        };
       });
     };
 
-    const rebuildEdge = () => {
-      const rect = paper.getBoundingClientRect();
-      width = Math.max(320, Math.round(rect.width));
-      height = Math.max(220, Math.round(rect.height));
-      points = [];
+    const draw = (time) => {
+      ctx.clearRect(0, 0, width, height);
+      const walk = Math.sin(time * 0.00052) * 15;
+      const bob = Math.sin(time * 0.0015) * 2.2;
 
-      const radius = Math.min(20, width * 0.045, height * 0.08);
-      const sideSteps = width < 560 ? 10 : 16;
-      const verticalSteps = width < 560 ? 7 : 10;
-      const cornerSteps = 6;
+      particles.forEach((particle) => {
+        let tx = particle.tx + walk;
+        let ty = particle.ty + bob;
 
-      for (let i = 0; i <= sideSteps; i += 1) {
-        addPoint(radius + ((width - radius * 2) * i) / sideSteps, 0, 0, -1);
-      }
-      for (let i = 1; i <= cornerSteps; i += 1) {
-        const angle = -Math.PI / 2 + (i * Math.PI) / (2 * cornerSteps);
-        addPoint(width - radius + Math.cos(angle) * radius, radius + Math.sin(angle) * radius, Math.cos(angle), Math.sin(angle));
-      }
-      for (let i = 1; i <= verticalSteps; i += 1) {
-        addPoint(width, radius + ((height - radius * 2) * i) / verticalSteps, 1, 0);
-      }
-      for (let i = 1; i <= cornerSteps; i += 1) {
-        const angle = (i * Math.PI) / (2 * cornerSteps);
-        addPoint(width - radius + Math.cos(angle) * radius, height - radius + Math.sin(angle) * radius, Math.cos(angle), Math.sin(angle));
-      }
-      for (let i = 1; i <= sideSteps; i += 1) {
-        addPoint(width - radius - ((width - radius * 2) * i) / sideSteps, height, 0, 1);
-      }
-      for (let i = 1; i <= cornerSteps; i += 1) {
-        const angle = Math.PI / 2 + (i * Math.PI) / (2 * cornerSteps);
-        addPoint(radius + Math.cos(angle) * radius, height - radius + Math.sin(angle) * radius, Math.cos(angle), Math.sin(angle));
-      }
-      for (let i = 1; i <= verticalSteps; i += 1) {
-        addPoint(0, height - radius - ((height - radius * 2) * i) / verticalSteps, -1, 0);
-      }
-      for (let i = 1; i <= cornerSteps; i += 1) {
-        const angle = Math.PI + (i * Math.PI) / (2 * cornerSteps);
-        addPoint(radius + Math.cos(angle) * radius, radius + Math.sin(angle) * radius, Math.cos(angle), Math.sin(angle));
-      }
-    };
+        if (particle.zone === "leg") {
+          const step = Math.sin(time * 0.0032 + particle.phase);
+          tx += step * particle.swing;
+          ty += Math.abs(step) * 1.6;
+        } else if (particle.zone === "trunk") {
+          tx += Math.sin(time * 0.0019 + particle.phase) * 2.6;
+          ty += Math.cos(time * 0.0016 + particle.phase) * 1.4;
+        } else if (particle.zone === "head") {
+          ty += Math.sin(time * 0.00135 + particle.phase) * 1.1;
+        }
 
-    const writeClip = () => {
-      if (!points.length) return;
-      const polygon = points
-        .map((point) => {
-          const x = (point.x / width) * 100;
-          const y = (point.y / height) * 100;
-          return `${x.toFixed(2)}% ${y.toFixed(2)}%`;
-        })
-        .join(", ");
-      setVar("--paper-clip", `polygon(${polygon})`);
-    };
-
-    const writeState = () => {
-      setVar("--sheen-x", `${state.x.toFixed(1)}px`);
-      setVar("--sheen-y", `${state.y.toFixed(1)}px`);
-      setVar("--sheen-opacity", state.sheen.toFixed(3));
-      setVar("--surface-dent", state.dent.toFixed(3));
-      setVar("--paper-shadow", state.shadow.toFixed(3));
-      setVar("--paper-contact", state.contact.toFixed(3));
-      setVar("--edge-glow-opacity", state.edgeGlow.toFixed(3));
-      setVar("--fiber-shift-x", `${state.fiberX.toFixed(2)}px`);
-      setVar("--fiber-shift-y", `${state.fiberY.toFixed(2)}px`);
-    };
-
-    const animate = () => {
-      Object.keys(state).forEach((key) => {
-        state[key] += (target[key] - state[key]) * 0.13;
-      });
-
-      points.forEach((point) => {
-        point.vx += (point.restX - point.x) * 0.055;
-        point.vy += (point.restY - point.y) * 0.055;
+        particle.vx += (tx - particle.x) * 0.019;
+        particle.vy += (ty - particle.y) * 0.019;
 
         if (pointer.active) {
-          const dx = pointer.x - point.x;
-          const dy = pointer.y - point.y;
+          const dx = particle.x - pointer.x;
+          const dy = particle.y - pointer.y;
           const distance = Math.hypot(dx, dy);
-          const radius = width < 560 ? 112 : 154;
+          const radius = width < 190 ? 68 : 82;
 
           if (distance > 0 && distance < radius) {
-            const pull = Math.pow(1 - distance / radius, 2.15);
-            const velocity = Math.hypot(pointer.vx, pointer.vy);
-            const tide = 1 + clamp(velocity / 18, 0, 0.72);
-            point.vx += (dx / distance) * pull * 1.36 * tide + pointer.vx * pull * 0.074;
-            point.vy += (dy / distance) * pull * 1.36 * tide + pointer.vy * pull * 0.074;
+            const force = (1 - distance / radius) * 1.28;
+            particle.vx += (dx / distance) * force + (-dy / distance) * force * 0.1;
+            particle.vy += (dy / distance) * force + (dx / distance) * force * 0.1;
           }
         }
 
-        point.vx *= 0.82;
-        point.vy *= 0.82;
-        point.x += point.vx;
-        point.y += point.vy;
+        particle.vx *= 0.9;
+        particle.vy *= 0.9;
+        particle.x += particle.vx;
+        particle.y += particle.vy;
 
-        const offsetX = point.x - point.restX;
-        const offsetY = point.y - point.restY;
-        const offset = Math.hypot(offsetX, offsetY);
-        const limit = width < 560 ? 14 : 21;
-        if (offset > limit) {
-          const scale = limit / offset;
-          point.x = point.restX + offsetX * scale;
-          point.y = point.restY + offsetY * scale;
-          point.vx *= 0.58;
-          point.vy *= 0.58;
-        }
+        const shimmer = Math.sin(time * 0.001 + particle.phase) * 0.12;
+        ctx.beginPath();
+        ctx.arc(particle.x, particle.y, particle.r + shimmer * 0.18, 0, Math.PI * 2);
+        ctx.fillStyle = particle.color;
+        ctx.fill();
       });
 
-      points.forEach((point, index) => {
-        const previous = points[(index - 1 + points.length) % points.length];
-        const next = points[(index + 1) % points.length];
-        const surfaceX = (previous.x + next.x) * 0.5 - point.x;
-        const surfaceY = (previous.y + next.y) * 0.5 - point.y;
-        point.vx += surfaceX * 0.021;
-        point.vy += surfaceY * 0.021;
-      });
-
-      writeState();
-      writeClip();
-      frameId = window.requestAnimationFrame(animate);
+      frameId = window.requestAnimationFrame(draw);
     };
 
-    const updatePointer = (event) => {
-      const rect = paper.getBoundingClientRect();
-      const x = event.clientX - rect.left;
-      const y = event.clientY - rect.top;
-      const now = window.performance.now();
-      const elapsed = Math.max(16, now - pointer.lastT);
-      const inside = x >= 0 && y >= 0 && x <= rect.width && y <= rect.height;
-      const near = x >= -80 && y >= -80 && x <= rect.width + 80 && y <= rect.height + 80;
-      const edgeDistance = Math.min(x, y, rect.width - x, rect.height - y);
-      const edge = near ? Math.pow(clamp(1 - Math.abs(edgeDistance) / 118, 0, 1), 1.05) : 0;
-      const pressure = inside ? 1 : 0;
+    stage.addEventListener(
+      "pointermove",
+      (event) => {
+        const rect = stage.getBoundingClientRect();
+        pointer.active = true;
+        pointer.x = event.clientX - rect.left;
+        pointer.y = event.clientY - rect.top;
+      },
+      { passive: true }
+    );
 
-      pointer.vx = clamp(((x - pointer.lastX) / elapsed) * 16, -28, 28);
-      pointer.vy = clamp(((y - pointer.lastY) / elapsed) * 16, -28, 28);
-      pointer.x = x;
-      pointer.y = y;
-      pointer.lastX = x;
-      pointer.lastY = y;
-      pointer.lastT = now;
-      pointer.active = near;
+    stage.addEventListener(
+      "pointerleave",
+      () => {
+        pointer.active = false;
+      },
+      { passive: true }
+    );
 
-      target.x = x;
-      target.y = y;
-      target.sheen = pressure ? 0.07 + pressure * 0.14 + edge * 0.06 : 0;
-      target.dent = pressure ? 0.01 + edge * 0.045 : 0;
-      target.shadow = 0.052 + edge * 0.018;
-      target.contact = 0.035 + edge * 0.018;
-      target.edgeGlow = near ? 0.12 + edge * 0.3 : 0;
-      target.fiberX = pointer.vx * 0.08;
-      target.fiberY = pointer.vy * 0.07;
-      shell.classList.toggle("is-hovered", near);
-    };
-
-    const clearPointer = () => {
-      shell.classList.remove("is-hovered");
-      pointer.active = false;
-      pointer.vx = 0;
-      pointer.vy = 0;
-      target.sheen = 0;
-      target.dent = 0;
-      target.shadow = 0.052;
-      target.contact = 0.035;
-      target.edgeGlow = 0;
-      target.fiberX = 0;
-      target.fiberY = 0;
-    };
-
-    shell.addEventListener("pointermove", updatePointer, { passive: true });
-    shell.addEventListener("pointerleave", clearPointer, { passive: true });
     window.addEventListener(
       "resize",
       () => {
         window.clearTimeout(resizeTimer);
-        resizeTimer = window.setTimeout(rebuildEdge, 160);
+        resizeTimer = window.setTimeout(rebuild, 160);
       },
       { passive: true }
     );
@@ -508,12 +586,12 @@
         window.cancelAnimationFrame(frameId);
         frameId = null;
       } else if (!document.hidden && !frameId) {
-        frameId = window.requestAnimationFrame(animate);
+        frameId = window.requestAnimationFrame(draw);
       }
     });
 
-    rebuildEdge();
-    frameId = window.requestAnimationFrame(animate);
+    rebuild();
+    frameId = window.requestAnimationFrame(draw);
   };
 
   const initLiquidMicroInteractions = () => {
@@ -610,6 +688,6 @@
   };
 
   initParticleTitle();
-  initIdentityCardPhysics();
+  initParticlePet();
   initLiquidMicroInteractions();
 })();
