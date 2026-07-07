@@ -661,266 +661,291 @@
     frameId = window.requestAnimationFrame(draw);
   };
 
-  const initSealPet = () => {
-    const pet = document.querySelector("[data-seal-pet]");
+  const initHamsterPet = () => {
+    const pet = document.querySelector("[data-hamster-pet]");
     if (!pet) return;
 
     const card = pet.closest("[data-identity-paper]");
     if (!card) return;
 
-    const speech = pet.querySelector("[data-seal-speech]");
-    const pops = Array.from(pet.querySelectorAll(".seal-pop"));
-    const actionClasses = [
-      "is-moving",
-      "is-resting",
-      "is-blinking",
-      "is-looking-left",
-      "is-looking-right",
-      "is-waving",
-      "is-stretching",
-      "is-yawning",
-      "is-rolling",
-      "is-happy",
-      "is-star",
-      "is-hearts",
-      "is-bubbles",
-      "is-sleeping"
-    ];
-    const speechMessages = ["hi", "working?", "seal says hello", "nice to meet you", "keep going"];
-    const behaviorPool = [
-      "crawl",
-      "crawl",
-      "crawl",
-      "rest",
-      "blink",
-      "look",
-      "wave",
-      "stretch",
-      "yawn",
-      "roll",
-      "sleep",
-      "bubbles"
-    ];
-
+    const targetDot = card.querySelector("[data-pet-target]");
     const state = {
-      area: { minX: 0, maxX: 0, minY: 0, maxY: 0 },
-      x: 0,
-      y: 0,
-      hover: false,
-      clicking: false,
-      sleeping: false,
-      timer: null,
-      actionTimer: null,
-      speechTimer: null,
-      lookTimer: null,
+      pos: { x: 0, y: 0 },
+      target: { x: 0, y: 0 },
+      following: false,
+      facing: 1,
+      obstacles: [],
+      bounds: null,
+      lockedUntil: 0,
+      arrivedCooldownUntil: 0,
+      homeTimer: null,
+      frameId: null,
       resizeTimer: null
     };
 
-    const rand = (min, max) => Math.random() * (max - min) + min;
-    const pick = (items) => items[Math.floor(Math.random() * items.length)];
     const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
-    const clearTimer = (name) => {
-      if (state[name]) {
-        window.clearTimeout(state[name]);
-        state[name] = null;
-      }
+    const distance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+    const intersects = (a, b) => !(a.right < b.left || a.left > b.right || a.bottom < b.top || a.top > b.bottom);
+
+    const currentConfig = () => {
+      const width = card.getBoundingClientRect().width;
+      return {
+        edgeMargin: width < 620 ? 10 : 14,
+        avoidPadding: width < 620 ? 10 : 15,
+        senseRadius: width < 620 ? 150 : 280,
+        arriveRadius: width < 620 ? 15 : 18,
+        followDistance: width < 620 ? 22 : 28,
+        speed: width < 620 ? 0.085 : 0.075,
+        homeSpeed: 0.045
+      };
     };
 
-    const clearActions = () => {
-      actionClasses.forEach((className) => pet.classList.remove(className));
-      pops.forEach((pop) => {
-        pop.textContent = "";
-      });
-    };
-
-    const applyPosition = (duration = 2600, instant = false) => {
-      pet.style.setProperty("--seal-x", `${state.x.toFixed(1)}px`);
-      pet.style.setProperty("--seal-y", `${state.y.toFixed(1)}px`);
-      pet.style.setProperty("--seal-duration", `${Math.round(duration)}ms`);
-
-      if (instant) {
-        pet.classList.add("is-instant");
-        window.requestAnimationFrame(() => pet.classList.remove("is-instant"));
-      }
-    };
-
-    const calculateArea = () => {
+    const refreshGeometry = () => {
+      const config = currentConfig();
       const cardRect = card.getBoundingClientRect();
-      const copy = card.querySelector(".hero-copy");
-      const copyRect = copy ? copy.getBoundingClientRect() : null;
-      const width = cardRect.width;
-      const height = cardRect.height;
-      const petWidth = pet.offsetWidth || 148;
-      const petHeight = pet.offsetHeight || 112;
-      const margin = width < 620 ? 10 : 14;
-      const maxX = Math.max(margin, width - petWidth - margin);
-      const maxY = Math.max(margin, height - petHeight - margin);
-      const copyRight = copyRect ? copyRect.right - cardRect.left : width * 0.62;
-      const lifeStart = width < 620 ? Math.max(width * 0.62, width - petWidth - 92) : Math.max(width * 0.66, copyRight + margin);
-      const minX = Math.min(maxX, Math.max(margin, lifeStart));
-      const topBand = width < 620 ? 24 : 42;
-      const lowerBand = width < 620 ? Math.min(maxY, 118) : Math.min(maxY, height * 0.56);
+      const petWidth = pet.offsetWidth || 94;
+      const petHeight = pet.offsetHeight || 88;
 
-      state.area = {
-        minX,
-        maxX,
-        minY: Math.min(topBand, maxY),
-        maxY: Math.max(Math.min(topBand, maxY), lowerBand)
+      state.bounds = {
+        left: config.edgeMargin,
+        top: config.edgeMargin,
+        right: Math.max(config.edgeMargin, cardRect.width - petWidth - config.edgeMargin),
+        bottom: Math.max(config.edgeMargin, cardRect.height - petHeight - config.edgeMargin)
       };
 
-      state.x = clamp(state.x || maxX, state.area.minX, state.area.maxX);
-      state.y = clamp(state.y || state.area.minY + (width < 620 ? 8 : 28), state.area.minY, state.area.maxY);
-      applyPosition(1, true);
-    };
-
-    const moveTo = (x, y, duration = 2600, tilt = 0) => {
-      state.x = clamp(x, state.area.minX, state.area.maxX);
-      state.y = clamp(y, state.area.minY, state.area.maxY);
-      pet.style.setProperty("--seal-tilt", `${tilt.toFixed(2)}deg`);
-      applyPosition(duration);
-    };
-
-    const freezeAtCurrentPosition = () => {
-      const cardRect = card.getBoundingClientRect();
-      const petRect = pet.getBoundingClientRect();
-      state.x = clamp(petRect.left - cardRect.left, state.area.minX, state.area.maxX);
-      state.y = clamp(petRect.top - cardRect.top, state.area.minY, state.area.maxY);
-      moveTo(state.x, state.y, 120, 0);
-    };
-
-    const showSpeech = (message, duration = 2200) => {
-      if (!speech) return;
-      clearTimer("speechTimer");
-      speech.textContent = message;
-      pet.classList.add("is-speaking");
-      state.speechTimer = window.setTimeout(() => {
-        pet.classList.remove("is-speaking");
-        speech.textContent = "";
-      }, duration);
-    };
-
-    const showPops = (type = "bubbles") => {
-      const values = type === "hearts" ? ["♡", "♡", "♡"] : type === "star" ? ["✦", "✦", ""] : ["", "", ""];
-      pops.forEach((pop, index) => {
-        pop.textContent = values[index] || "";
-      });
-      pet.classList.remove("is-hearts", "is-bubbles");
-      pet.classList.add(type === "hearts" ? "is-hearts" : "is-bubbles");
-      window.setTimeout(() => {
-        pet.classList.remove("is-hearts", "is-bubbles");
-        pops.forEach((pop) => {
-          pop.textContent = "";
-        });
-      }, 2200);
-    };
-
-    const finishAction = (delay, callback) => {
-      clearTimer("actionTimer");
-      state.actionTimer = window.setTimeout(() => {
-        callback?.();
-        if (!state.hover && !state.clicking && !state.sleeping && !reduceMotion) scheduleNext(rand(3000, 8000));
-      }, delay);
-    };
-
-    const scheduleNext = (delay = rand(3000, 8000)) => {
-      clearTimer("timer");
-      if (reduceMotion || state.hover || state.clicking || state.sleeping) return;
-      state.timer = window.setTimeout(runRandomBehavior, delay);
-    };
-
-    const crawl = () => {
-      clearActions();
-      pet.classList.add("is-moving");
-      const distance = card.getBoundingClientRect().width < 620 ? rand(8, 22) : rand(18, 54);
-      const angle = rand(0, Math.PI * 2);
-      const targetX = state.x + Math.cos(angle) * distance;
-      const targetY = state.y + Math.sin(angle) * distance * 0.72;
-      const duration = rand(2600, 4600);
-      const tilt = clamp((targetX - state.x) * 0.045, -2.2, 2.2);
-
-      moveTo(targetX, targetY, duration, tilt);
-      finishAction(duration + 180, () => {
-        pet.classList.remove("is-moving");
-        pet.style.setProperty("--seal-tilt", "0deg");
+      state.obstacles = Array.from(card.querySelectorAll("[data-pet-avoid]")).map((element) => {
+        const rect = element.getBoundingClientRect();
+        return {
+          left: rect.left - cardRect.left - config.avoidPadding,
+          top: rect.top - cardRect.top - config.avoidPadding,
+          right: rect.right - cardRect.left + config.avoidPadding,
+          bottom: rect.bottom - cardRect.top + config.avoidPadding
+        };
       });
     };
 
-    const simpleAction = (className, duration, options = {}) => {
-      clearActions();
-      pet.classList.add(className);
-      if (options.pops) showPops(options.pops);
-      if (options.speech) showSpeech(options.speech, Math.min(duration, 2600));
-      finishAction(duration, () => {
-        pet.classList.remove(className);
-      });
+    const petRectAt = (x, y) => ({
+      left: x,
+      top: y,
+      right: x + (pet.offsetWidth || 94),
+      bottom: y + (pet.offsetHeight || 88)
+    });
+
+    const isSafe = (x, y) => {
+      const bounds = state.bounds;
+      if (!bounds) return false;
+      if (x < bounds.left || y < bounds.top || x > bounds.right || y > bounds.bottom) return false;
+      const rect = petRectAt(x, y);
+      return state.obstacles.every((obstacle) => !intersects(rect, obstacle));
     };
 
-    const sleep = (duration = rand(5000, 10000)) => {
-      clearActions();
-      state.sleeping = true;
-      pet.classList.add("is-sleeping");
-      finishAction(duration, () => {
-        pet.classList.remove("is-sleeping");
-        state.sleeping = false;
-        simpleAction("is-blinking", 900);
-      });
+    const clampToBounds = (x, y) => {
+      const bounds = state.bounds;
+      return {
+        x: clamp(x, bounds.left, bounds.right),
+        y: clamp(y, bounds.top, bounds.bottom)
+      };
     };
 
-    function runRandomBehavior() {
-      if (state.hover || state.clicking || state.sleeping || reduceMotion) return;
+    const findNearestSafePosition = (x, y) => {
+      const desired = clampToBounds(x, y);
+      if (isSafe(desired.x, desired.y)) return desired;
 
-      const behavior = pick(behaviorPool);
-      if (behavior === "crawl") {
-        crawl();
-      } else if (behavior === "rest") {
-        simpleAction("is-resting", rand(2200, 3600));
-      } else if (behavior === "blink") {
-        simpleAction("is-blinking", 900);
-      } else if (behavior === "look") {
-        simpleAction(Math.random() > 0.5 ? "is-looking-left" : "is-looking-right", rand(1600, 2600));
-      } else if (behavior === "wave") {
-        simpleAction("is-waving", 1700);
-      } else if (behavior === "stretch") {
-        simpleAction("is-stretching", 2500);
-      } else if (behavior === "yawn") {
-        simpleAction("is-yawning", 2400);
-      } else if (behavior === "roll") {
-        simpleAction("is-rolling", 2600);
-      } else if (behavior === "sleep") {
-        sleep();
-      } else {
-        simpleAction("is-bubbles", 1900, { pops: "bubbles" });
+      const maxRadius = Math.max(card.offsetWidth, card.offsetHeight);
+      for (let radius = 8; radius <= maxRadius; radius += 8) {
+        for (let angle = 0; angle < 360; angle += 10) {
+          const radians = (angle * Math.PI) / 180;
+          const candidate = clampToBounds(
+            desired.x + Math.cos(radians) * radius,
+            desired.y + Math.sin(radians) * radius
+          );
+          if (isSafe(candidate.x, candidate.y)) return candidate;
+        }
       }
-    }
 
-    const pauseDailyBehavior = () => {
-      clearTimer("timer");
-      clearTimer("actionTimer");
-      state.sleeping = false;
-      clearActions();
+      return clampToBounds(card.offsetWidth - (pet.offsetWidth || 94) - 20, 18);
     };
 
-    pet.addEventListener(
-      "pointerenter",
-      () => {
-        state.hover = true;
-        pauseDailyBehavior();
-        freezeAtCurrentPosition();
-        pet.classList.add("is-hovered");
-        pet.classList.add(Math.random() > 0.45 ? "is-waving" : "is-blinking");
-        showSpeech(pick(speechMessages), 2600);
+    const getHomePosition = () => {
+      refreshGeometry();
+      const width = card.getBoundingClientRect().width;
+      return findNearestSafePosition(
+        card.offsetWidth - (pet.offsetWidth || 94) - (width < 620 ? 14 : 24),
+        width < 620 ? 26 : 22
+      );
+    };
+
+    const getPetCenter = () => ({
+      x: state.pos.x + (pet.offsetWidth || 94) / 2,
+      y: state.pos.y + (pet.offsetHeight || 88) / 2
+    });
+
+    const mouseToCardPoint = (event) => {
+      const cardRect = card.getBoundingClientRect();
+      return {
+        x: event.clientX - cardRect.left,
+        y: event.clientY - cardRect.top
+      };
+    };
+
+    const setPetState = (nextState, duration = 0) => {
+      pet.dataset.state = nextState;
+
+      if (duration > 0) {
+        state.lockedUntil = performance.now() + duration;
+        window.setTimeout(() => {
+          if (performance.now() >= state.lockedUntil) updatePassiveState();
+        }, duration);
+      }
+    };
+
+    const updatePassiveState = () => {
+      if (performance.now() < state.lockedUntil) return;
+      const distToTarget = distance(state.pos, state.target);
+      pet.dataset.state = state.following && distToTarget > 4 ? "follow" : "idle";
+    };
+
+    const setTargetDot = (point, visible) => {
+      if (!targetDot) return;
+      targetDot.style.left = `${point.x}px`;
+      targetDot.style.top = `${point.y}px`;
+      targetDot.classList.toggle("is-visible", visible);
+    };
+
+    const setTargetFromMouse = (point) => {
+      if (reduceMotion) return;
+
+      refreshGeometry();
+      const config = currentConfig();
+      const center = getPetCenter();
+      const distanceFromPet = Math.hypot(point.x - center.x, point.y - center.y);
+
+      if (distanceFromPet > config.senseRadius) {
+        state.following = false;
+        setTargetDot(point, false);
+        updatePassiveState();
+        return;
+      }
+
+      state.following = true;
+      setTargetDot(point, true);
+
+      const angle = Math.atan2(point.y - center.y, point.x - center.x);
+      const wantedX = point.x - (pet.offsetWidth || 94) / 2 - Math.cos(angle) * config.followDistance;
+      const wantedY = point.y - (pet.offsetHeight || 88) / 2 - Math.sin(angle) * config.followDistance;
+
+      state.target = findNearestSafePosition(wantedX, wantedY);
+      updatePassiveState();
+    };
+
+    const triggerInteract = () => {
+      setPetState("interact", 700);
+    };
+
+    const triggerArrive = () => {
+      const now = performance.now();
+      if (now < state.arrivedCooldownUntil || now < state.lockedUntil) return;
+      state.arrivedCooldownUntil = now + 1500;
+      setPetState("arrive", 840);
+    };
+
+    const safeNextStep = () => {
+      const config = currentConfig();
+      const dx = state.target.x - state.pos.x;
+      const dy = state.target.y - state.pos.y;
+      const dist = Math.hypot(dx, dy);
+      const activeSpeed = state.following ? config.speed : config.homeSpeed;
+      const nextX = state.pos.x + dx * activeSpeed;
+      const nextY = state.pos.y + dy * activeSpeed;
+
+      if (isSafe(nextX, nextY)) return { x: nextX, y: nextY, dist };
+
+      const step = Math.min(12, Math.max(4, dist * 0.1));
+      let best = null;
+      let bestScore = Infinity;
+
+      for (let angle = 0; angle < 360; angle += 12) {
+        const radians = (angle * Math.PI) / 180;
+        const candidate = clampToBounds(
+          state.pos.x + Math.cos(radians) * step,
+          state.pos.y + Math.sin(radians) * step
+        );
+        if (!isSafe(candidate.x, candidate.y)) continue;
+
+        const score = Math.hypot(state.target.x - candidate.x, state.target.y - candidate.y);
+        if (score < bestScore) {
+          bestScore = score;
+          best = candidate;
+        }
+      }
+
+      return best ? { x: best.x, y: best.y, dist } : { x: state.pos.x, y: state.pos.y, dist: 0 };
+    };
+
+    const render = () => {
+      const dx = state.target.x - state.pos.x;
+      if (Math.abs(dx) > 0.25) state.facing = dx >= 0 ? 1 : -1;
+      pet.style.transform = `translate3d(${state.pos.x.toFixed(2)}px, ${state.pos.y.toFixed(2)}px, 0) scaleX(${state.facing})`;
+    };
+
+    const loop = () => {
+      const next = safeNextStep();
+      state.pos.x = next.x;
+      state.pos.y = next.y;
+
+      if (state.following && next.dist < currentConfig().arriveRadius) {
+        triggerArrive();
+      }
+
+      if (performance.now() >= state.lockedUntil) {
+        pet.dataset.state = next.dist > 4 && state.following ? "follow" : "idle";
+      }
+
+      render();
+      state.frameId = window.requestAnimationFrame(loop);
+    };
+
+    const returnHome = () => {
+      state.following = false;
+      if (targetDot) targetDot.classList.remove("is-visible");
+      state.target = getHomePosition();
+      updatePassiveState();
+    };
+
+    const init = () => {
+      const home = getHomePosition();
+      state.pos = { ...home };
+      state.target = { ...home };
+      render();
+      pet.classList.add("is-ready");
+
+      if (!reduceMotion) {
+        state.frameId = window.requestAnimationFrame(loop);
+      }
+    };
+
+    card.addEventListener(
+      "pointermove",
+      (event) => {
+        setTargetFromMouse(mouseToCardPoint(event));
       },
       { passive: true }
     );
 
-    pet.addEventListener(
+    card.addEventListener(
+      "pointerenter",
+      (event) => {
+        window.clearTimeout(state.homeTimer);
+        setTargetFromMouse(mouseToCardPoint(event));
+      },
+      { passive: true }
+    );
+
+    card.addEventListener(
       "pointerleave",
       () => {
-        state.hover = false;
-        pet.classList.remove("is-hovered", "is-waving", "is-blinking", "is-looking-left", "is-looking-right");
-        pet.classList.remove("is-speaking");
-        if (speech) speech.textContent = "";
-        if (!state.clicking && !state.sleeping) scheduleNext(rand(1200, 3000));
+        window.clearTimeout(state.homeTimer);
+        state.homeTimer = window.setTimeout(returnHome, 260);
       },
       { passive: true }
     );
@@ -928,84 +953,41 @@
     pet.addEventListener("click", (event) => {
       event.preventDefault();
       event.stopPropagation();
-      pauseDailyBehavior();
-      freezeAtCurrentPosition();
-      state.clicking = true;
-      pet.classList.add("is-clicking");
-
-      const action = pick(["roll", "happy", "star", "hearts", "sleep"]);
-      const finish = (duration, options = {}) => {
-        window.setTimeout(() => {
-          if (options.wake) state.sleeping = false;
-          state.clicking = false;
-          pet.classList.remove("is-clicking", "is-rolling", "is-happy", "is-star", "is-hearts", "is-sleeping");
-          if (!state.hover && !state.sleeping) scheduleNext(rand(1600, 3600));
-        }, duration);
-      };
-
-      if (action === "roll") {
-        pet.classList.add("is-rolling");
-        finish(2600);
-      } else if (action === "happy") {
-        pet.classList.add("is-happy");
-        showPops("bubbles");
-        finish(1800);
-      } else if (action === "star") {
-        pet.classList.add("is-star");
-        showPops("star");
-        finish(2400);
-      } else if (action === "hearts") {
-        pet.classList.add("is-happy");
-        showPops("hearts");
-        finish(2200);
-      } else {
-        state.sleeping = true;
-        pet.classList.add("is-sleeping");
-        finish(6200, { wake: true });
-      }
+      triggerInteract();
     });
 
-    card.addEventListener(
-      "pointermove",
-      (event) => {
-        if (state.hover || state.clicking || state.sleeping || reduceMotion) return;
-        const petRect = pet.getBoundingClientRect();
-        const centerX = petRect.left + petRect.width / 2;
-        const centerY = petRect.top + petRect.height / 2;
-        const distance = Math.hypot(event.clientX - centerX, event.clientY - centerY);
-
-        if (distance < 170) {
-          pet.classList.toggle("is-looking-left", event.clientX < centerX);
-          pet.classList.toggle("is-looking-right", event.clientX >= centerX);
-          clearTimer("lookTimer");
-          state.lookTimer = window.setTimeout(() => {
-            pet.classList.remove("is-looking-left", "is-looking-right");
-          }, 1200);
-        }
-      },
-      { passive: true }
-    );
+    pet.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        triggerInteract();
+      }
+    });
 
     window.addEventListener(
       "resize",
       () => {
         window.clearTimeout(state.resizeTimer);
-        state.resizeTimer = window.setTimeout(calculateArea, 180);
+        state.resizeTimer = window.setTimeout(() => {
+          const home = getHomePosition();
+          state.pos = { ...home };
+          state.target = { ...home };
+          render();
+        }, 160);
       },
       { passive: true }
     );
 
-    calculateArea();
-    pet.classList.add("is-controlled", "is-ready");
+    document.addEventListener("visibilitychange", () => {
+      if (reduceMotion) return;
+      if (document.hidden && state.frameId) {
+        window.cancelAnimationFrame(state.frameId);
+        state.frameId = null;
+      } else if (!document.hidden && !state.frameId) {
+        state.frameId = window.requestAnimationFrame(loop);
+      }
+    });
 
-    if (reduceMotion) {
-      window.setInterval(() => {
-        simpleAction("is-blinking", 800);
-      }, 7600);
-      return;
-    }
-
-    scheduleNext(rand(1800, 3600));
+    init();
   };
 
   const initLiquidMicroInteractions = () => {
@@ -1102,6 +1084,6 @@
   };
 
   initParticleTitle();
-  initSealPet();
+  initHamsterPet();
   initLiquidMicroInteractions();
 })();
