@@ -303,10 +303,10 @@
       context.fill();
     };
 
-    const drawElephant = (context, boxWidth, boxHeight) => {
-      const scale = Math.min(boxWidth / 224, boxHeight / 176);
-      const offsetX = (boxWidth - 224 * scale) / 2;
-      const offsetY = (boxHeight - 176 * scale) / 2 + 6 * scale;
+    const drawCat = (context, boxWidth, boxHeight) => {
+      const scale = Math.min(boxWidth / 220, boxHeight / 158);
+      const offsetX = (boxWidth - 220 * scale) / 2;
+      const offsetY = (boxHeight - 158 * scale) / 2 + 5 * scale;
       const x = (value) => offsetX + value * scale;
       const y = (value) => offsetY + value * scale;
 
@@ -316,47 +316,70 @@
       context.lineCap = "round";
       context.lineJoin = "round";
 
+      context.lineWidth = 9 * scale;
       context.beginPath();
-      context.ellipse(x(94), y(82), 54 * scale, 33 * scale, -0.04, 0, Math.PI * 2);
+      context.moveTo(x(56), y(75));
+      context.bezierCurveTo(x(22), y(60), x(29), y(25), x(64), y(36));
+      context.bezierCurveTo(x(83), y(43), x(76), y(59), x(58), y(59));
+      context.stroke();
+
+      context.beginPath();
+      context.ellipse(x(95), y(82), 58 * scale, 25 * scale, -0.04, 0, Math.PI * 2);
       context.fill();
 
       context.beginPath();
-      context.ellipse(x(132), y(72), 22 * scale, 28 * scale, -0.18, 0, Math.PI * 2);
+      context.ellipse(x(61), y(87), 24 * scale, 20 * scale, -0.12, 0, Math.PI * 2);
       context.fill();
 
       context.beginPath();
-      context.ellipse(x(150), y(77), 28 * scale, 25 * scale, 0.08, 0, Math.PI * 2);
+      context.ellipse(x(129), y(76), 22 * scale, 18 * scale, 0.02, 0, Math.PI * 2);
       context.fill();
 
-      context.lineWidth = 18 * scale;
       context.beginPath();
-      context.moveTo(x(169), y(86));
-      context.bezierCurveTo(x(190), y(100), x(176), y(133), x(151), y(125));
-      context.stroke();
+      context.ellipse(x(150), y(67), 27 * scale, 24 * scale, 0.08, 0, Math.PI * 2);
+      context.fill();
 
-      context.lineWidth = 4.4 * scale;
       context.beginPath();
-      context.moveTo(x(168), y(86));
-      context.quadraticCurveTo(x(189), y(88), x(198), y(80));
-      context.stroke();
+      context.moveTo(x(130), y(51));
+      context.lineTo(x(137), y(26));
+      context.lineTo(x(150), y(52));
+      context.closePath();
+      context.fill();
 
-      context.lineWidth = 5 * scale;
       context.beginPath();
-      context.moveTo(x(42), y(75));
-      context.quadraticCurveTo(x(24), y(64), x(28), y(51));
-      context.stroke();
+      context.moveTo(x(150), y(51));
+      context.lineTo(x(166), y(29));
+      context.lineTo(x(171), y(56));
+      context.closePath();
+      context.fill();
 
-      [58, 82, 112, 136].forEach((legX, index) => {
-        const h = index % 2 === 0 ? 40 : 36;
-        roundedRect(context, x(legX), y(101), 15 * scale, h * scale, 7 * scale);
+      [
+        { x: 66, y: 99, h: 21 },
+        { x: 91, y: 100, h: 19 },
+        { x: 119, y: 99, h: 20 },
+        { x: 142, y: 97, h: 22 }
+      ].forEach((leg) => {
+        roundedRect(context, x(leg.x), y(leg.y), 13 * scale, leg.h * scale, 6 * scale);
         context.beginPath();
-        context.ellipse(x(legX + 7), y(101 + h), 11 * scale, 5 * scale, 0, 0, Math.PI * 2);
+        context.ellipse(x(leg.x + 8), y(leg.y + leg.h), 10 * scale, 4.6 * scale, 0, 0, Math.PI * 2);
         context.fill();
       });
 
       context.beginPath();
-      context.ellipse(x(156), y(70), 3.5 * scale, 3.5 * scale, 0, 0, Math.PI * 2);
+      context.ellipse(x(158), y(63), 3.2 * scale, 3.2 * scale, 0, 0, Math.PI * 2);
       context.fill();
+
+      context.beginPath();
+      context.ellipse(x(169), y(70), 2.5 * scale, 1.8 * scale, 0.15, 0, Math.PI * 2);
+      context.fill();
+
+      context.lineWidth = 2.1 * scale;
+      [[62, 60], [70, 70], [78, 80]].forEach(([endY, controlY]) => {
+        context.beginPath();
+        context.moveTo(x(166), y(70));
+        context.quadraticCurveTo(x(181), y(controlY), x(193), y(endY));
+        context.stroke();
+      });
     };
 
     const makeTargets = () => {
@@ -366,20 +389,19 @@
       const offCtx = offscreen.getContext("2d");
       if (!offCtx) return [];
 
-      drawElephant(offCtx, width, height);
+      drawCat(offCtx, width, height);
       const imageData = offCtx.getImageData(0, 0, width, height).data;
       const step = width < 190 ? 3 : 2;
       let targets = [];
 
-      const eye = { x: width * 0.7, y: height * 0.4 };
-      const tusk = { x: width * 0.83, y: height * 0.46 };
-      const scale = Math.min(width / 224, height / 176);
-      const offsetX = (width - 224 * scale) / 2;
-      const offsetY = (height - 176 * scale) / 2 + 6 * scale;
+      const scale = Math.min(width / 220, height / 158);
+      const offsetX = (width - 220 * scale) / 2;
+      const offsetY = (height - 158 * scale) / 2 + 5 * scale;
       const sx = (value) => offsetX + value * scale;
       const sy = (value) => offsetY + value * scale;
-      const outlineColor = "rgba(76, 112, 126, 0.58)";
-      const softOutlineColor = "rgba(126, 157, 162, 0.5)";
+      const outlineColor = "rgba(68, 103, 116, 0.58)";
+      const softOutlineColor = "rgba(128, 158, 160, 0.46)";
+      const warmAccentColor = "rgba(204, 159, 155, 0.5)";
       const addPoint = (x, y, zone, color, size = rand(0.58, 1.08)) => {
         targets.push({
           x: x + rand(-0.72, 0.72),
@@ -422,21 +444,42 @@
           addPoint(sx(x1 + (x2 - x1) * t), sy(y1 + (y2 - y1) * t), zone, color, rand(0.6, 1.1));
         }
       };
+      const addTriangle = (points, count, zone, color) => {
+        points.forEach((point, index) => {
+          const next = points[(index + 1) % points.length];
+          addLine(point[0], point[1], next[0], next[1], count, zone, color);
+        });
+      };
 
       for (let py = 0; py < height; py += step) {
         for (let px = 0; px < width; px += step) {
           const alpha = imageData[(py * width + px) * 4 + 3];
           if (alpha > 70) {
-            const nx = px / width;
-            const ny = py / height;
-            const isEye = Math.hypot(px - eye.x, py - eye.y) < 5;
-            const isTusk = Math.hypot(px - tusk.x, py - tusk.y) < 18 && ny < 0.55;
-            const zone = ny > 0.62 ? "leg" : nx > 0.66 ? "trunk" : nx > 0.53 && ny < 0.58 ? "head" : "body";
-            let color = "rgba(224, 236, 235, 0.72)";
-            if (Math.random() > 0.68) color = "rgba(242, 247, 245, 0.82)";
-            if (Math.random() > 0.84) color = "rgba(91, 122, 134, 0.48)";
-            if (isEye) color = "rgba(43, 78, 90, 0.76)";
-            if (isTusk) color = "rgba(207, 184, 143, 0.5)";
+            const modelX = (px - offsetX) / scale;
+            const modelY = (py - offsetY) / scale;
+            const isEye = Math.hypot(modelX - 158, modelY - 63) < 5.2;
+            const isNose = Math.hypot(modelX - 169, modelY - 70) < 5.6;
+            const isEar = modelY < 57 && modelX > 126;
+            const isPaw = modelY > 106;
+            const zone =
+              modelX < 57
+                ? "tail"
+                : isPaw && modelX > 112
+                  ? "frontLeg"
+                  : isPaw
+                    ? "backLeg"
+                    : modelX > 126
+                      ? isEar
+                        ? "ear"
+                        : "head"
+                      : "body";
+            let color = "rgba(226, 238, 237, 0.74)";
+            if (Math.random() > 0.66) color = "rgba(246, 250, 248, 0.84)";
+            if (Math.random() > 0.87) color = "rgba(90, 121, 132, 0.44)";
+            if (zone === "tail" && Math.random() > 0.72) color = "rgba(214, 230, 228, 0.72)";
+            if (isEar && Math.random() > 0.78) color = warmAccentColor;
+            if (isEye) color = "rgba(39, 72, 84, 0.78)";
+            if (isNose) color = "rgba(188, 130, 128, 0.58)";
             targets.push({
               x: px + rand(-0.45, 0.45),
               y: py + rand(-0.45, 0.45),
@@ -447,22 +490,36 @@
         }
       }
 
-      addEllipse(94, 82, 55, 34, -0.04, 180, "body", softOutlineColor);
-      addEllipse(132, 72, 22, 28, -0.18, 90, "head", softOutlineColor);
-      addEllipse(150, 77, 28, 25, 0.08, 112, "head", outlineColor);
-      addCurve(169, 86, 190, 100, 176, 133, 151, 125, 120, "trunk", outlineColor);
-      addCurve(168, 86, 187, 88, 191, 86, 198, 80, 44, "trunk", "rgba(201, 176, 131, 0.56)");
-      addCurve(42, 75, 31, 69, 24, 63, 28, 51, 42, "body", outlineColor);
-      [58, 82, 112, 136].forEach((legX) => {
-        addLine(legX, 103, legX, 139, 28, "leg", softOutlineColor);
-        addLine(legX + 15, 103, legX + 15, 139, 28, "leg", softOutlineColor);
-        addEllipse(legX + 7, 141, 11, 5, 0, 36, "leg", softOutlineColor);
+      addCurve(56, 75, 22, 60, 29, 25, 64, 36, 82, "tail", outlineColor);
+      addCurve(64, 36, 83, 43, 76, 59, 58, 59, 50, "tail", softOutlineColor);
+      addEllipse(95, 82, 59, 26, -0.04, 190, "body", softOutlineColor);
+      addEllipse(61, 87, 24, 20, -0.12, 76, "body", "rgba(154, 176, 170, 0.36)");
+      addEllipse(150, 67, 28, 25, 0.08, 116, "head", outlineColor);
+      addTriangle([[130, 51], [137, 26], [150, 52]], 24, "ear", softOutlineColor);
+      addTriangle([[150, 51], [166, 29], [171, 56]], 24, "ear", softOutlineColor);
+      addLine(139, 34, 146, 50, 20, "ear", warmAccentColor);
+      addLine(160, 37, 166, 54, 20, "ear", warmAccentColor);
+      [
+        { x: 66, y: 99, h: 21, zone: "backLeg" },
+        { x: 91, y: 100, h: 19, zone: "backLeg" },
+        { x: 119, y: 99, h: 20, zone: "frontLeg" },
+        { x: 142, y: 97, h: 22, zone: "frontLeg" }
+      ].forEach((leg) => {
+        addLine(leg.x, leg.y + 3, leg.x, leg.y + leg.h, 24, leg.zone, softOutlineColor);
+        addLine(leg.x + 13, leg.y + 3, leg.x + 13, leg.y + leg.h, 24, leg.zone, softOutlineColor);
+        addEllipse(leg.x + 8, leg.y + leg.h, 10, 4.6, 0, 32, leg.zone, softOutlineColor);
       });
-      for (let i = 0; i < 34; i += 1) {
-        addPoint(sx(156), sy(70), "head", "rgba(43, 78, 90, 0.78)", rand(0.72, 1.2));
+      [[62, 60], [70, 70], [78, 80]].forEach(([endY, controlY]) => {
+        addCurve(166, 70, 181, controlY, 186, endY, 193, endY, 24, "head", "rgba(70, 104, 116, 0.48)");
+      });
+      for (let i = 0; i < 30; i += 1) {
+        addPoint(sx(158), sy(63), "head", "rgba(39, 72, 84, 0.8)", rand(0.72, 1.2));
+      }
+      for (let i = 0; i < 24; i += 1) {
+        addPoint(sx(169), sy(70), "head", warmAccentColor, rand(0.58, 0.96));
       }
 
-      const maxParticles = width < 190 ? 1450 : 2400;
+      const maxParticles = width < 190 ? 1380 : 2260;
       if (targets.length > maxParticles) {
         const stride = Math.ceil(targets.length / maxParticles);
         targets = targets.filter((target, index) => target.feature || index % stride === 0);
@@ -504,42 +561,52 @@
 
     const draw = (time) => {
       ctx.clearRect(0, 0, width, height);
-      const walk = Math.sin(time * 0.00052) * 15;
-      const bob = Math.sin(time * 0.0015) * 2.2;
+      const crawl = time * 0.003;
+      const drift = Math.sin(time * 0.00042) * 4.6;
+      const breath = Math.sin(time * 0.00145) * 1.45;
 
       particles.forEach((particle) => {
-        let tx = particle.tx + walk;
-        let ty = particle.ty + bob;
+        let tx = particle.tx + drift * 0.42;
+        let ty = particle.ty + breath;
 
-        if (particle.zone === "leg") {
-          const step = Math.sin(time * 0.0032 + particle.phase);
-          tx += step * particle.swing;
-          ty += Math.abs(step) * 1.6;
-        } else if (particle.zone === "trunk") {
-          tx += Math.sin(time * 0.0019 + particle.phase) * 2.6;
-          ty += Math.cos(time * 0.0016 + particle.phase) * 1.4;
+        if (particle.zone === "frontLeg" || particle.zone === "backLeg") {
+          const phaseOffset = particle.zone === "frontLeg" ? 0 : Math.PI;
+          const step = Math.sin(crawl + phaseOffset + particle.phase * 0.12);
+          const lift = Math.max(0, Math.cos(crawl + phaseOffset + particle.phase * 0.12));
+          tx += step * particle.swing * 1.55 + drift * 0.16;
+          ty += lift * 2.2 + Math.abs(step) * 0.52;
+        } else if (particle.zone === "tail") {
+          tx += Math.sin(time * 0.00175 + particle.phase * 0.38 + particle.ty * 0.025) * 3.4 + drift * 0.18;
+          ty += Math.cos(time * 0.00155 + particle.phase * 0.34) * 2.15;
+        } else if (particle.zone === "ear") {
+          tx += Math.sin(time * 0.00115 + particle.phase * 0.25) * 1.2;
+          ty += Math.sin(time * 0.0016 + particle.phase * 0.22) * 1.35;
         } else if (particle.zone === "head") {
-          ty += Math.sin(time * 0.00135 + particle.phase) * 1.1;
+          tx += Math.sin(time * 0.00105 + particle.phase * 0.18) * 1.05;
+          ty += Math.sin(time * 0.00135 + particle.phase * 0.2) * 1.25;
+        } else {
+          tx += Math.sin(time * 0.00105 + particle.tx * 0.035 + particle.phase * 0.18) * 1.05;
+          ty += Math.sin(time * 0.0013 + particle.tx * 0.025) * 0.72;
         }
 
-        particle.vx += (tx - particle.x) * 0.019;
-        particle.vy += (ty - particle.y) * 0.019;
+        particle.vx += (tx - particle.x) * 0.021;
+        particle.vy += (ty - particle.y) * 0.021;
 
         if (pointer.active) {
           const dx = particle.x - pointer.x;
           const dy = particle.y - pointer.y;
           const distance = Math.hypot(dx, dy);
-          const radius = width < 190 ? 68 : 82;
+          const radius = width < 190 ? 66 : 78;
 
           if (distance > 0 && distance < radius) {
-            const force = (1 - distance / radius) * 1.28;
-            particle.vx += (dx / distance) * force + (-dy / distance) * force * 0.1;
-            particle.vy += (dy / distance) * force + (dx / distance) * force * 0.1;
+            const force = (1 - distance / radius) * 1.38;
+            particle.vx += (dx / distance) * force + (-dy / distance) * force * 0.12;
+            particle.vy += (dy / distance) * force + (dx / distance) * force * 0.12;
           }
         }
 
-        particle.vx *= 0.9;
-        particle.vy *= 0.9;
+        particle.vx *= 0.895;
+        particle.vy *= 0.895;
         particle.x += particle.vx;
         particle.y += particle.vy;
 
