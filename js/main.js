@@ -691,8 +691,10 @@
       const { width, height } = card.getBoundingClientRect();
       return {
         edgeMargin: width < 620 ? 10 : 14,
-        avoidPaddingX: width < 620 ? 8 : 10,
-        avoidPaddingY: width < 620 ? 10 : 14,
+        avoidPaddingX: width < 620 ? 5 : 6,
+        avoidPaddingY: width < 620 ? 7 : 9,
+        petHitInsetX: width < 620 ? 12 : 18,
+        petHitInsetY: width < 620 ? 7 : 10,
         senseRadius: Math.hypot(width, height) + 80,
         arriveRadius: width < 620 ? 15 : 18,
         followDistance: width < 620 ? 22 : 28,
@@ -755,7 +757,7 @@
               metrics = context.measureText(text);
             }
 
-            textWidth = metrics.width + 26;
+            textWidth = metrics.width + 12;
           }
 
           right = Math.min(right, rect.left - cardRect.left + textWidth + config.avoidPaddingX);
@@ -770,12 +772,15 @@
       });
     };
 
-    const petRectAt = (x, y) => ({
-      left: x,
-      top: y,
-      right: x + (pet.offsetWidth || 94),
-      bottom: y + (pet.offsetHeight || 88)
-    });
+    const petRectAt = (x, y) => {
+      const config = currentConfig();
+      return {
+        left: x + config.petHitInsetX,
+        top: y + config.petHitInsetY,
+        right: x + (pet.offsetWidth || 94) - config.petHitInsetX,
+        bottom: y + (pet.offsetHeight || 88) - config.petHitInsetY
+      };
+    };
 
     const isSafe = (x, y) => {
       const bounds = state.bounds;
