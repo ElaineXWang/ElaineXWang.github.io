@@ -384,13 +384,13 @@ body.nav-open .menu-toggle span + span {
   isolation: isolate;
   margin: -12px -18px 30px;
   padding: 18px;
-  --ripple-x: 50%;
-  --ripple-y: 50%;
-  --ripple-opacity: 0.035;
-  --ripple-size: 150px;
+  --sheen-x: 50%;
+  --sheen-y: 50%;
+  --sheen-opacity: 0;
   --paper-lift: -1px;
   --paper-tilt-x: 0deg;
   --paper-tilt-y: 0deg;
+  animation: paper-card-enter 1180ms cubic-bezier(0.19, 1, 0.22, 1) 120ms both;
 }
 
 .identity-card-shell::before {
@@ -400,12 +400,19 @@ body.nav-open .menu-toggle span + span {
   z-index: 0;
   pointer-events: none;
   background:
-    radial-gradient(circle at 18% 28%, rgba(105, 132, 112, 0.11), transparent 30%),
-    radial-gradient(circle at 86% 78%, rgba(205, 171, 112, 0.08), transparent 32%);
+    radial-gradient(circle at 18% 28%, rgba(105, 132, 112, 0.09), transparent 31%),
+    radial-gradient(circle at 86% 78%, rgba(205, 171, 112, 0.07), transparent 34%);
   border-radius: 18px;
-  filter: blur(20px);
-  opacity: 0.46;
+  filter: blur(24px);
+  opacity: 0.4;
   transform: translate3d(0, 8px, 0);
+  transition: opacity 420ms ease, filter 420ms ease, transform 420ms ease;
+}
+
+.identity-card-shell.is-hovered::before {
+  opacity: 0.58;
+  filter: blur(30px);
+  transform: translate3d(0, 13px, 0);
 }
 
 .hero-space {
@@ -416,21 +423,34 @@ body.nav-open .menu-toggle span + span {
   margin-bottom: 0;
   padding: 24px 30px 26px;
   background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(246, 250, 249, 0.84)),
-    linear-gradient(118deg, rgba(81, 117, 140, 0.1), transparent 18%, transparent 58%, rgba(105, 132, 112, 0.1)),
-    repeating-linear-gradient(90deg, rgba(64, 100, 112, 0.04) 0 1px, transparent 1px 46px);
-  border: 1px solid rgba(81, 117, 140, 0.2);
-  border-radius: 10px;
+    radial-gradient(circle at 18% 12%, rgba(255, 255, 255, 0.98), transparent 38%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.965), rgba(247, 250, 249, 0.86)),
+    linear-gradient(118deg, rgba(81, 117, 140, 0.065), transparent 22%, transparent 62%, rgba(205, 171, 112, 0.052)),
+    repeating-linear-gradient(92deg, rgba(64, 100, 112, 0.018) 0 1px, transparent 1px 52px);
+  border: 1px solid rgba(81, 117, 140, 0.17);
+  border-radius: 11px;
   box-shadow:
-    0 20px 48px rgba(47, 42, 34, 0.05),
-    0 0 24px rgba(81, 117, 140, calc(var(--ripple-opacity) * 0.35)),
-    inset 0 1px 0 rgba(255, 255, 255, 0.82),
-    inset 0 0 0 1px rgba(81, 117, 140, calc(var(--ripple-opacity) * 0.55));
-  filter: drop-shadow(0 24px 28px rgba(47, 42, 34, 0.065));
+    0 18px 42px rgba(47, 42, 34, 0.052),
+    0 9px 22px rgba(81, 117, 140, 0.035),
+    inset 0 1px 0 rgba(255, 255, 255, 0.86),
+    inset 0 -18px 34px rgba(81, 117, 140, 0.025),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.48);
+  filter: drop-shadow(0 20px 24px rgba(47, 42, 34, 0.055));
   transform: perspective(1100px) rotateX(var(--paper-tilt-x)) rotateY(var(--paper-tilt-y)) translate3d(0, var(--paper-lift), 0);
   transform-style: preserve-3d;
-  transition: box-shadow 260ms ease, filter 260ms ease, transform 420ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition: border-color 320ms ease, box-shadow 420ms ease, filter 420ms ease, transform 520ms cubic-bezier(0.22, 1, 0.36, 1);
   will-change: transform;
+}
+
+.identity-card-shell.is-hovered .hero-space {
+  border-color: rgba(81, 117, 140, 0.22);
+  box-shadow:
+    0 32px 68px rgba(47, 42, 34, 0.07),
+    0 15px 34px rgba(81, 117, 140, 0.048),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    inset 0 -18px 38px rgba(81, 117, 140, 0.028),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.56);
+  filter: drop-shadow(0 28px 32px rgba(47, 42, 34, 0.065));
 }
 
 .hero-space::before,
@@ -444,29 +464,20 @@ body.nav-open .menu-toggle span + span {
 .hero-space::before {
   z-index: 0;
   background:
-    linear-gradient(105deg, transparent 0 18%, rgba(81, 117, 140, 0.13) 18.1%, transparent 18.6% 72%, rgba(105, 132, 112, 0.1) 72.1%, transparent 72.7%),
-    repeating-linear-gradient(0deg, rgba(105, 132, 112, 0.035) 0 1px, transparent 1px 38px);
-  opacity: 0.78;
-  animation: hero-depth 28s ease-in-out infinite alternate;
+    linear-gradient(105deg, transparent 0 18%, rgba(81, 117, 140, 0.062) 18.2%, transparent 18.9% 72%, rgba(205, 171, 112, 0.052) 72.2%, transparent 72.9%),
+    repeating-linear-gradient(8deg, rgba(64, 100, 112, 0.012) 0 1px, transparent 1px 7px),
+    repeating-linear-gradient(96deg, rgba(205, 171, 112, 0.01) 0 1px, transparent 1px 11px);
+  opacity: 0.55;
+  animation: paper-light-drift 30s ease-in-out infinite alternate;
 }
 
 .hero-space::after {
   z-index: 1;
   background:
-    radial-gradient(circle at var(--ripple-x) var(--ripple-y), rgba(81, 117, 140, var(--ripple-opacity)), transparent var(--ripple-size)),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.72), transparent 24%, transparent 76%, rgba(255, 255, 255, 0.62)),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.68));
-}
-
-.identity-edge-field {
-  position: absolute;
-  inset: 0;
-  z-index: 3;
-  display: block;
-  width: 100%;
-  height: 100%;
-  opacity: 0.78;
-  pointer-events: none;
+    radial-gradient(circle at var(--sheen-x) var(--sheen-y), rgba(255, 255, 255, var(--sheen-opacity)), transparent 156px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.54), transparent 27%, transparent 74%, rgba(255, 255, 255, 0.46)),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.13), rgba(255, 255, 255, 0.56));
+  transition: background 200ms ease;
 }
 
 .hero-copy {
@@ -485,12 +496,14 @@ body.nav-open .menu-toggle span + span {
   font-size: 12px !important;
   font-weight: 700;
   text-transform: uppercase;
+  animation: paper-content-enter 620ms ease 520ms both;
 }
 
 .particle-title {
   position: relative;
   width: min(100%, 620px);
   height: 84px;
+  animation: ink-title-enter 900ms ease 640ms both;
 }
 
 .particle-title canvas {
@@ -499,6 +512,7 @@ body.nav-open .menu-toggle span + span {
   display: block;
   width: 100%;
   height: 100%;
+  filter: blur(0);
 }
 
 .particle-fallback {
@@ -537,6 +551,23 @@ body.nav-open .menu-toggle span + span {
   box-shadow: 0 8px 18px rgba(47, 42, 34, 0.035);
   font-size: 12px;
   font-weight: 700;
+  animation: paper-content-enter 620ms ease both;
+}
+
+.identity-keywords span:nth-child(1) {
+  animation-delay: 780ms;
+}
+
+.identity-keywords span:nth-child(2) {
+  animation-delay: 850ms;
+}
+
+.identity-keywords span:nth-child(3) {
+  animation-delay: 920ms;
+}
+
+.identity-keywords span:nth-child(4) {
+  animation-delay: 990ms;
 }
 
 .metrics-grid {
@@ -560,7 +591,24 @@ body.nav-open .menu-toggle span + span {
   border-radius: 8px;
   box-shadow: 0 12px 28px rgba(47, 42, 34, 0.05);
   text-decoration: none;
-  transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
+  animation: metric-card-enter 620ms cubic-bezier(0.19, 1, 0.22, 1) both;
+  transition: transform 220ms ease, border-color 220ms ease, background 220ms ease, box-shadow 220ms ease;
+}
+
+.metric-card:nth-child(1) {
+  animation-delay: 1010ms;
+}
+
+.metric-card:nth-child(2) {
+  animation-delay: 1080ms;
+}
+
+.metric-card:nth-child(3) {
+  animation-delay: 1150ms;
+}
+
+.metric-card:nth-child(4) {
+  animation-delay: 1220ms;
 }
 
 .metric-card::before {
@@ -575,9 +623,10 @@ body.nav-open .menu-toggle span + span {
 }
 
 .metric-card:hover {
-  border-color: rgba(81, 117, 140, 0.28);
-  background: rgba(255, 255, 255, 0.9);
-  transform: translateY(-2px);
+  border-color: rgba(81, 117, 140, 0.24);
+  background: rgba(255, 255, 255, 0.93);
+  box-shadow: 0 18px 34px rgba(47, 42, 34, 0.065);
+  transform: translateY(-3px);
 }
 
 .metric-card strong {
@@ -586,6 +635,12 @@ body.nav-open .menu-toggle span + span {
   font-family: var(--serif);
   font-size: 31px;
   line-height: 1;
+  transition: filter 220ms ease, transform 220ms ease;
+}
+
+.metric-card:hover strong {
+  filter: contrast(1.08);
+  transform: scale(1.025);
 }
 
 .metric-card span {
@@ -842,6 +897,68 @@ body.nav-open .menu-toggle span + span {
   }
 }
 
+@keyframes paper-card-enter {
+  from {
+    opacity: 0;
+    filter: blur(7px);
+    transform: translate3d(0, 18px, 0) scale(0.992);
+  }
+
+  to {
+    opacity: 1;
+    filter: blur(0);
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes paper-content-enter {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 8px, 0);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes ink-title-enter {
+  from {
+    opacity: 0;
+    filter: blur(5px);
+    transform: translate3d(0, 7px, 0);
+  }
+
+  to {
+    opacity: 1;
+    filter: blur(0);
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes metric-card-enter {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 10px, 0);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes paper-light-drift {
+  from {
+    transform: translate3d(-6px, -2px, 0);
+  }
+
+  to {
+    transform: translate3d(7px, 3px, 0);
+  }
+}
+
 @media (max-width: 860px) {
   .menu-toggle {
     display: grid;
@@ -972,10 +1089,6 @@ body.nav-open .menu-toggle span + span {
 
   .hero-space {
     padding: 18px;
-  }
-
-  .identity-edge-field {
-    opacity: 0.72;
   }
 
   .hero-kicker {
