@@ -691,7 +691,8 @@
       const { width, height } = card.getBoundingClientRect();
       return {
         edgeMargin: width < 620 ? 10 : 14,
-        avoidPadding: width < 620 ? 10 : 15,
+        avoidPaddingX: width < 620 ? 8 : 10,
+        avoidPaddingY: width < 620 ? 10 : 14,
         senseRadius: Math.hypot(width, height) + 80,
         arriveRadius: width < 620 ? 15 : 18,
         followDistance: width < 620 ? 22 : 28,
@@ -722,16 +723,49 @@
           return Array.from(element.children).filter((child) => child.getBoundingClientRect().width > 0);
         }
 
+        if (element.classList.contains("particle-title")) {
+          return [{ element, tightenParticleTitle: true }];
+        }
+
         return [element];
       });
 
-      state.obstacles = obstacleElements.map((element) => {
+      state.obstacles = obstacleElements.map((item) => {
+        const element = item.element || item;
         const rect = element.getBoundingClientRect();
+        let right = rect.right - cardRect.left + config.avoidPaddingX;
+
+        if (item.tightenParticleTitle) {
+          const text = element.dataset.particleText || element.textContent || "";
+          const canvas = document.createElement("canvas");
+          const context = canvas.getContext("2d");
+          const height = Math.max(72, Math.round(rect.height));
+          const width = Math.max(260, Math.round(rect.width));
+          let textWidth = Math.min(width, rect.width);
+
+          if (context) {
+            let fontSize = Math.min(height * 0.8, width * 0.18);
+            context.font = `700 ${fontSize}px Georgia, "Times New Roman", serif`;
+            let metrics = context.measureText(text);
+            const maxTextWidth = width - 8;
+
+            if (metrics.width > maxTextWidth) {
+              fontSize *= maxTextWidth / metrics.width;
+              context.font = `700 ${fontSize}px Georgia, "Times New Roman", serif`;
+              metrics = context.measureText(text);
+            }
+
+            textWidth = metrics.width + 26;
+          }
+
+          right = Math.min(right, rect.left - cardRect.left + textWidth + config.avoidPaddingX);
+        }
+
         return {
-          left: rect.left - cardRect.left - config.avoidPadding,
-          top: rect.top - cardRect.top - config.avoidPadding,
-          right: rect.right - cardRect.left + config.avoidPadding,
-          bottom: rect.bottom - cardRect.top + config.avoidPadding
+          left: rect.left - cardRect.left - config.avoidPaddingX,
+          top: rect.top - cardRect.top - config.avoidPaddingY,
+          right,
+          bottom: rect.bottom - cardRect.top + config.avoidPaddingY
         };
       });
     };
