@@ -661,6 +661,353 @@
     frameId = window.requestAnimationFrame(draw);
   };
 
+  const initSealPet = () => {
+    const pet = document.querySelector("[data-seal-pet]");
+    if (!pet) return;
+
+    const card = pet.closest("[data-identity-paper]");
+    if (!card) return;
+
+    const speech = pet.querySelector("[data-seal-speech]");
+    const pops = Array.from(pet.querySelectorAll(".seal-pop"));
+    const actionClasses = [
+      "is-moving",
+      "is-resting",
+      "is-blinking",
+      "is-looking-left",
+      "is-looking-right",
+      "is-waving",
+      "is-stretching",
+      "is-yawning",
+      "is-rolling",
+      "is-happy",
+      "is-star",
+      "is-hearts",
+      "is-bubbles",
+      "is-sleeping"
+    ];
+    const speechMessages = ["hi", "working?", "seal says hello", "nice to meet you", "keep going"];
+    const behaviorPool = [
+      "crawl",
+      "crawl",
+      "crawl",
+      "rest",
+      "blink",
+      "look",
+      "wave",
+      "stretch",
+      "yawn",
+      "roll",
+      "sleep",
+      "bubbles"
+    ];
+
+    const state = {
+      area: { minX: 0, maxX: 0, minY: 0, maxY: 0 },
+      x: 0,
+      y: 0,
+      hover: false,
+      clicking: false,
+      sleeping: false,
+      timer: null,
+      actionTimer: null,
+      speechTimer: null,
+      lookTimer: null,
+      resizeTimer: null
+    };
+
+    const rand = (min, max) => Math.random() * (max - min) + min;
+    const pick = (items) => items[Math.floor(Math.random() * items.length)];
+    const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+    const clearTimer = (name) => {
+      if (state[name]) {
+        window.clearTimeout(state[name]);
+        state[name] = null;
+      }
+    };
+
+    const clearActions = () => {
+      actionClasses.forEach((className) => pet.classList.remove(className));
+      pops.forEach((pop) => {
+        pop.textContent = "";
+      });
+    };
+
+    const applyPosition = (duration = 2600, instant = false) => {
+      pet.style.setProperty("--seal-x", `${state.x.toFixed(1)}px`);
+      pet.style.setProperty("--seal-y", `${state.y.toFixed(1)}px`);
+      pet.style.setProperty("--seal-duration", `${Math.round(duration)}ms`);
+
+      if (instant) {
+        pet.classList.add("is-instant");
+        window.requestAnimationFrame(() => pet.classList.remove("is-instant"));
+      }
+    };
+
+    const calculateArea = () => {
+      const cardRect = card.getBoundingClientRect();
+      const copy = card.querySelector(".hero-copy");
+      const copyRect = copy ? copy.getBoundingClientRect() : null;
+      const width = cardRect.width;
+      const height = cardRect.height;
+      const petWidth = pet.offsetWidth || 148;
+      const petHeight = pet.offsetHeight || 112;
+      const margin = width < 620 ? 10 : 14;
+      const maxX = Math.max(margin, width - petWidth - margin);
+      const maxY = Math.max(margin, height - petHeight - margin);
+      const copyRight = copyRect ? copyRect.right - cardRect.left : width * 0.62;
+      const lifeStart = width < 620 ? Math.max(width * 0.62, width - petWidth - 92) : Math.max(width * 0.66, copyRight + margin);
+      const minX = Math.min(maxX, Math.max(margin, lifeStart));
+      const topBand = width < 620 ? 24 : 42;
+      const lowerBand = width < 620 ? Math.min(maxY, 118) : Math.min(maxY, height * 0.56);
+
+      state.area = {
+        minX,
+        maxX,
+        minY: Math.min(topBand, maxY),
+        maxY: Math.max(Math.min(topBand, maxY), lowerBand)
+      };
+
+      state.x = clamp(state.x || maxX, state.area.minX, state.area.maxX);
+      state.y = clamp(state.y || state.area.minY + (width < 620 ? 8 : 28), state.area.minY, state.area.maxY);
+      applyPosition(1, true);
+    };
+
+    const moveTo = (x, y, duration = 2600, tilt = 0) => {
+      state.x = clamp(x, state.area.minX, state.area.maxX);
+      state.y = clamp(y, state.area.minY, state.area.maxY);
+      pet.style.setProperty("--seal-tilt", `${tilt.toFixed(2)}deg`);
+      applyPosition(duration);
+    };
+
+    const freezeAtCurrentPosition = () => {
+      const cardRect = card.getBoundingClientRect();
+      const petRect = pet.getBoundingClientRect();
+      state.x = clamp(petRect.left - cardRect.left, state.area.minX, state.area.maxX);
+      state.y = clamp(petRect.top - cardRect.top, state.area.minY, state.area.maxY);
+      moveTo(state.x, state.y, 120, 0);
+    };
+
+    const showSpeech = (message, duration = 2200) => {
+      if (!speech) return;
+      clearTimer("speechTimer");
+      speech.textContent = message;
+      pet.classList.add("is-speaking");
+      state.speechTimer = window.setTimeout(() => {
+        pet.classList.remove("is-speaking");
+        speech.textContent = "";
+      }, duration);
+    };
+
+    const showPops = (type = "bubbles") => {
+      const values = type === "hearts" ? ["♡", "♡", "♡"] : type === "star" ? ["✦", "✦", ""] : ["", "", ""];
+      pops.forEach((pop, index) => {
+        pop.textContent = values[index] || "";
+      });
+      pet.classList.remove("is-hearts", "is-bubbles");
+      pet.classList.add(type === "hearts" ? "is-hearts" : "is-bubbles");
+      window.setTimeout(() => {
+        pet.classList.remove("is-hearts", "is-bubbles");
+        pops.forEach((pop) => {
+          pop.textContent = "";
+        });
+      }, 2200);
+    };
+
+    const finishAction = (delay, callback) => {
+      clearTimer("actionTimer");
+      state.actionTimer = window.setTimeout(() => {
+        callback?.();
+        if (!state.hover && !state.clicking && !state.sleeping && !reduceMotion) scheduleNext(rand(3000, 8000));
+      }, delay);
+    };
+
+    const scheduleNext = (delay = rand(3000, 8000)) => {
+      clearTimer("timer");
+      if (reduceMotion || state.hover || state.clicking || state.sleeping) return;
+      state.timer = window.setTimeout(runRandomBehavior, delay);
+    };
+
+    const crawl = () => {
+      clearActions();
+      pet.classList.add("is-moving");
+      const distance = card.getBoundingClientRect().width < 620 ? rand(8, 22) : rand(18, 54);
+      const angle = rand(0, Math.PI * 2);
+      const targetX = state.x + Math.cos(angle) * distance;
+      const targetY = state.y + Math.sin(angle) * distance * 0.72;
+      const duration = rand(2600, 4600);
+      const tilt = clamp((targetX - state.x) * 0.045, -2.2, 2.2);
+
+      moveTo(targetX, targetY, duration, tilt);
+      finishAction(duration + 180, () => {
+        pet.classList.remove("is-moving");
+        pet.style.setProperty("--seal-tilt", "0deg");
+      });
+    };
+
+    const simpleAction = (className, duration, options = {}) => {
+      clearActions();
+      pet.classList.add(className);
+      if (options.pops) showPops(options.pops);
+      if (options.speech) showSpeech(options.speech, Math.min(duration, 2600));
+      finishAction(duration, () => {
+        pet.classList.remove(className);
+      });
+    };
+
+    const sleep = (duration = rand(5000, 10000)) => {
+      clearActions();
+      state.sleeping = true;
+      pet.classList.add("is-sleeping");
+      finishAction(duration, () => {
+        pet.classList.remove("is-sleeping");
+        state.sleeping = false;
+        simpleAction("is-blinking", 900);
+      });
+    };
+
+    function runRandomBehavior() {
+      if (state.hover || state.clicking || state.sleeping || reduceMotion) return;
+
+      const behavior = pick(behaviorPool);
+      if (behavior === "crawl") {
+        crawl();
+      } else if (behavior === "rest") {
+        simpleAction("is-resting", rand(2200, 3600));
+      } else if (behavior === "blink") {
+        simpleAction("is-blinking", 900);
+      } else if (behavior === "look") {
+        simpleAction(Math.random() > 0.5 ? "is-looking-left" : "is-looking-right", rand(1600, 2600));
+      } else if (behavior === "wave") {
+        simpleAction("is-waving", 1700);
+      } else if (behavior === "stretch") {
+        simpleAction("is-stretching", 2500);
+      } else if (behavior === "yawn") {
+        simpleAction("is-yawning", 2400);
+      } else if (behavior === "roll") {
+        simpleAction("is-rolling", 2600);
+      } else if (behavior === "sleep") {
+        sleep();
+      } else {
+        simpleAction("is-bubbles", 1900, { pops: "bubbles" });
+      }
+    }
+
+    const pauseDailyBehavior = () => {
+      clearTimer("timer");
+      clearTimer("actionTimer");
+      state.sleeping = false;
+      clearActions();
+    };
+
+    pet.addEventListener(
+      "pointerenter",
+      () => {
+        state.hover = true;
+        pauseDailyBehavior();
+        freezeAtCurrentPosition();
+        pet.classList.add("is-hovered");
+        pet.classList.add(Math.random() > 0.45 ? "is-waving" : "is-blinking");
+        showSpeech(pick(speechMessages), 2600);
+      },
+      { passive: true }
+    );
+
+    pet.addEventListener(
+      "pointerleave",
+      () => {
+        state.hover = false;
+        pet.classList.remove("is-hovered", "is-waving", "is-blinking", "is-looking-left", "is-looking-right");
+        pet.classList.remove("is-speaking");
+        if (speech) speech.textContent = "";
+        if (!state.clicking && !state.sleeping) scheduleNext(rand(1200, 3000));
+      },
+      { passive: true }
+    );
+
+    pet.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      pauseDailyBehavior();
+      freezeAtCurrentPosition();
+      state.clicking = true;
+      pet.classList.add("is-clicking");
+
+      const action = pick(["roll", "happy", "star", "hearts", "sleep"]);
+      const finish = (duration, options = {}) => {
+        window.setTimeout(() => {
+          if (options.wake) state.sleeping = false;
+          state.clicking = false;
+          pet.classList.remove("is-clicking", "is-rolling", "is-happy", "is-star", "is-hearts", "is-sleeping");
+          if (!state.hover && !state.sleeping) scheduleNext(rand(1600, 3600));
+        }, duration);
+      };
+
+      if (action === "roll") {
+        pet.classList.add("is-rolling");
+        finish(2600);
+      } else if (action === "happy") {
+        pet.classList.add("is-happy");
+        showPops("bubbles");
+        finish(1800);
+      } else if (action === "star") {
+        pet.classList.add("is-star");
+        showPops("star");
+        finish(2400);
+      } else if (action === "hearts") {
+        pet.classList.add("is-happy");
+        showPops("hearts");
+        finish(2200);
+      } else {
+        state.sleeping = true;
+        pet.classList.add("is-sleeping");
+        finish(6200, { wake: true });
+      }
+    });
+
+    card.addEventListener(
+      "pointermove",
+      (event) => {
+        if (state.hover || state.clicking || state.sleeping || reduceMotion) return;
+        const petRect = pet.getBoundingClientRect();
+        const centerX = petRect.left + petRect.width / 2;
+        const centerY = petRect.top + petRect.height / 2;
+        const distance = Math.hypot(event.clientX - centerX, event.clientY - centerY);
+
+        if (distance < 170) {
+          pet.classList.toggle("is-looking-left", event.clientX < centerX);
+          pet.classList.toggle("is-looking-right", event.clientX >= centerX);
+          clearTimer("lookTimer");
+          state.lookTimer = window.setTimeout(() => {
+            pet.classList.remove("is-looking-left", "is-looking-right");
+          }, 1200);
+        }
+      },
+      { passive: true }
+    );
+
+    window.addEventListener(
+      "resize",
+      () => {
+        window.clearTimeout(state.resizeTimer);
+        state.resizeTimer = window.setTimeout(calculateArea, 180);
+      },
+      { passive: true }
+    );
+
+    calculateArea();
+    pet.classList.add("is-controlled", "is-ready");
+
+    if (reduceMotion) {
+      window.setInterval(() => {
+        simpleAction("is-blinking", 800);
+      }, 7600);
+      return;
+    }
+
+    scheduleNext(rand(1800, 3600));
+  };
+
   const initLiquidMicroInteractions = () => {
     if (reduceMotion) return;
 
@@ -755,6 +1102,6 @@
   };
 
   initParticleTitle();
-  initParticlePet();
+  initSealPet();
   initLiquidMicroInteractions();
 })();

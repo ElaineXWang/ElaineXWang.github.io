@@ -33,7 +33,7 @@
   <link rel="canonical" href="https://elainexwang.github.io/">
   <link rel="shortcut icon" href="/img/favicon_3.jpg">
   <link rel="preload" href="/img/profile-headshot.jpg" as="image">
-  <link rel="stylesheet" href="/css/index.css?v=20260707-seal">
+  <link rel="stylesheet" href="/css/index.css?v=20260707-seal-pet">
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -179,44 +179,61 @@
                 </div>
               </div>
             </div>
-            <div class="healing-pet" data-healing-pet aria-hidden="true">
-              <span class="pet-bubble pet-bubble-one"></span>
-              <span class="pet-bubble pet-bubble-two"></span>
-              <svg class="seal-illustration" viewBox="0 0 220 150" focusable="false">
+            <div class="seal-pet" data-seal-pet aria-hidden="true">
+              <span class="seal-speech" data-seal-speech></span>
+              <span class="seal-pop seal-pop-one"></span>
+              <span class="seal-pop seal-pop-two"></span>
+              <span class="seal-pop seal-pop-three"></span>
+              <svg class="seal-figure" viewBox="0 0 230 158" focusable="false">
                 <defs>
-                  <linearGradient id="seal-body-gradient" x1="42" y1="38" x2="184" y2="127" gradientUnits="userSpaceOnUse">
+                  <linearGradient id="seal-body-gradient" x1="42" y1="34" x2="192" y2="134" gradientUnits="userSpaceOnUse">
                     <stop offset="0" stop-color="#ffffff" />
-                    <stop offset="0.58" stop-color="#f4fbf8" />
-                    <stop offset="1" stop-color="#deefed" />
+                    <stop offset="0.42" stop-color="#f7fbfa" />
+                    <stop offset="0.78" stop-color="#e6f3f1" />
+                    <stop offset="1" stop-color="#d5e8e7" />
                   </linearGradient>
-                  <linearGradient id="seal-soft-edge" x1="62" y1="44" x2="178" y2="128" gradientUnits="userSpaceOnUse">
+                  <radialGradient id="seal-head-gradient" cx="0.43" cy="0.28" r="0.82">
                     <stop offset="0" stop-color="#fdfefe" />
+                    <stop offset="0.64" stop-color="#edf7f5" />
                     <stop offset="1" stop-color="#dcefed" />
-                  </linearGradient>
+                  </radialGradient>
+                  <radialGradient id="seal-blush-gradient" cx="0.5" cy="0.5" r="0.55">
+                    <stop offset="0" stop-color="#d9979b" stop-opacity="0.45" />
+                    <stop offset="1" stop-color="#d9979b" stop-opacity="0" />
+                  </radialGradient>
                 </defs>
-                <ellipse class="seal-ground" cx="112" cy="124" rx="67" ry="13" />
+                <ellipse class="seal-ground" cx="116" cy="129" rx="72" ry="13" />
                 <g class="seal-tail">
-                  <path d="M55 94 C36 82 29 65 39 57 C54 62 66 76 70 91 Z" />
-                  <path d="M63 101 C42 104 27 118 33 128 C52 130 69 119 77 104 Z" />
+                  <path d="M58 96 C37 84 31 66 42 57 C57 63 69 78 72 93 Z" />
+                  <path d="M65 104 C43 107 30 121 37 130 C56 131 73 120 80 106 Z" />
                 </g>
                 <g class="seal-body-group">
-                  <path class="seal-body" d="M48 91 C49 63 80 45 121 48 C165 51 191 72 188 96 C185 123 151 133 104 128 C67 124 46 112 48 91 Z" />
-                  <path class="seal-belly" d="M77 101 C93 112 134 115 160 104 C150 120 111 124 84 115 C75 112 71 106 77 101 Z" />
-                  <path class="seal-flipper seal-flipper-left" d="M86 105 C71 119 55 120 48 110 C60 103 73 98 89 97 Z" />
-                  <path class="seal-flipper seal-flipper-right" d="M148 107 C161 119 178 119 185 109 C171 103 158 98 144 99 Z" />
+                  <path class="seal-body" d="M49 92 C51 61 83 43 124 46 C171 49 199 72 194 98 C190 126 154 136 105 130 C67 125 47 113 49 92 Z" />
+                  <path class="seal-body-highlight" d="M74 76 C91 58 135 55 170 73 C145 67 107 66 78 84 Z" />
+                  <path class="seal-belly" d="M76 104 C94 116 137 119 166 106 C155 122 113 127 84 117 C75 113 70 108 76 104 Z" />
+                  <ellipse class="seal-fur-spot seal-fur-spot-one" cx="102" cy="65" rx="4.5" ry="2.8" />
+                  <ellipse class="seal-fur-spot seal-fur-spot-two" cx="130" cy="61" rx="3.5" ry="2.2" />
+                  <ellipse class="seal-fur-spot seal-fur-spot-three" cx="95" cy="116" rx="4.2" ry="2.3" />
+                  <g class="seal-star-prop">
+                    <path d="M112 95 L116 103 L125 104 L119 110 L121 119 L112 115 L104 119 L106 110 L99 104 L108 103 Z" />
+                  </g>
+                  <path class="seal-flipper seal-flipper-left" d="M88 107 C73 121 57 122 50 112 C62 105 75 100 91 99 Z" />
+                  <path class="seal-flipper seal-flipper-right" d="M151 109 C164 121 181 121 188 111 C174 105 160 100 146 101 Z" />
                 </g>
                 <g class="seal-head-group">
-                  <ellipse class="seal-head" cx="146" cy="72" rx="43" ry="34" />
-                  <ellipse class="seal-cheek seal-cheek-left" cx="126" cy="78" rx="8" ry="5" />
-                  <ellipse class="seal-cheek seal-cheek-right" cx="166" cy="78" rx="8" ry="5" />
-                  <path class="seal-eye seal-eye-left seal-eye-closed" d="M125 64 Q131 68 137 64" />
-                  <path class="seal-eye seal-eye-right seal-eye-closed" d="M154 64 Q160 68 166 64" />
-                  <circle class="seal-eye-open seal-eye-open-left" cx="131" cy="65" r="3.2" />
-                  <circle class="seal-eye-open seal-eye-open-right" cx="160" cy="65" r="3.2" />
-                  <ellipse class="seal-nose" cx="145" cy="73" rx="4.8" ry="3.4" />
-                  <path class="seal-mouth" d="M145 77 C141 82 136 82 133 79 M145 77 C149 82 154 82 157 79" />
-                  <path class="seal-whisker seal-whisker-left" d="M136 74 C126 72 118 71 109 72 M136 78 C126 79 118 81 110 84" />
-                  <path class="seal-whisker seal-whisker-right" d="M154 74 C164 72 173 71 181 72 M154 78 C164 79 172 81 180 84" />
+                  <ellipse class="seal-head" cx="151" cy="73" rx="44" ry="35" />
+                  <path class="seal-forehead-light" d="M126 58 C135 43 167 42 181 57 C163 51 143 51 126 58 Z" />
+                  <ellipse class="seal-cheek seal-cheek-left" cx="130" cy="80" rx="10" ry="6.5" />
+                  <ellipse class="seal-cheek seal-cheek-right" cx="171" cy="80" rx="10" ry="6.5" />
+                  <path class="seal-eye seal-eye-left seal-eye-closed" d="M128 64 Q134 68 140 64" />
+                  <path class="seal-eye seal-eye-right seal-eye-closed" d="M158 64 Q164 68 170 64" />
+                  <circle class="seal-eye-open seal-eye-open-left" cx="134" cy="65" r="3.4" />
+                  <circle class="seal-eye-open seal-eye-open-right" cx="164" cy="65" r="3.4" />
+                  <ellipse class="seal-nose" cx="150" cy="74" rx="5" ry="3.5" />
+                  <path class="seal-mouth seal-mouth-smile" d="M150 78 C146 83 140 83 137 80 M150 78 C154 83 160 83 163 80" />
+                  <ellipse class="seal-mouth-yawn" cx="150" cy="84" rx="8" ry="10" />
+                  <path class="seal-whisker seal-whisker-left" d="M141 75 C130 73 121 72 112 73 M141 79 C130 80 121 82 113 86" />
+                  <path class="seal-whisker seal-whisker-right" d="M159 75 C170 73 179 72 187 73 M159 79 C170 80 178 82 186 86" />
                 </g>
               </svg>
             </div>
