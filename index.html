@@ -33,7 +33,7 @@
   <link rel="canonical" href="https://elainexwang.github.io/">
   <link rel="shortcut icon" href="/img/favicon_3.jpg">
   <link rel="preload" href="/img/profile-headshot.jpg" as="image">
-  <link rel="stylesheet" href="/css/index.css">
+  <link rel="stylesheet" href="/css/index.css?v=20260707-seal">
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -179,8 +179,46 @@
                 </div>
               </div>
             </div>
-            <div class="particle-pet" data-particle-pet aria-hidden="true">
-              <canvas></canvas>
+            <div class="healing-pet" data-healing-pet aria-hidden="true">
+              <span class="pet-bubble pet-bubble-one"></span>
+              <span class="pet-bubble pet-bubble-two"></span>
+              <svg class="seal-illustration" viewBox="0 0 220 150" focusable="false">
+                <defs>
+                  <linearGradient id="seal-body-gradient" x1="42" y1="38" x2="184" y2="127" gradientUnits="userSpaceOnUse">
+                    <stop offset="0" stop-color="#ffffff" />
+                    <stop offset="0.58" stop-color="#f4fbf8" />
+                    <stop offset="1" stop-color="#deefed" />
+                  </linearGradient>
+                  <linearGradient id="seal-soft-edge" x1="62" y1="44" x2="178" y2="128" gradientUnits="userSpaceOnUse">
+                    <stop offset="0" stop-color="#fdfefe" />
+                    <stop offset="1" stop-color="#dcefed" />
+                  </linearGradient>
+                </defs>
+                <ellipse class="seal-ground" cx="112" cy="124" rx="67" ry="13" />
+                <g class="seal-tail">
+                  <path d="M55 94 C36 82 29 65 39 57 C54 62 66 76 70 91 Z" />
+                  <path d="M63 101 C42 104 27 118 33 128 C52 130 69 119 77 104 Z" />
+                </g>
+                <g class="seal-body-group">
+                  <path class="seal-body" d="M48 91 C49 63 80 45 121 48 C165 51 191 72 188 96 C185 123 151 133 104 128 C67 124 46 112 48 91 Z" />
+                  <path class="seal-belly" d="M77 101 C93 112 134 115 160 104 C150 120 111 124 84 115 C75 112 71 106 77 101 Z" />
+                  <path class="seal-flipper seal-flipper-left" d="M86 105 C71 119 55 120 48 110 C60 103 73 98 89 97 Z" />
+                  <path class="seal-flipper seal-flipper-right" d="M148 107 C161 119 178 119 185 109 C171 103 158 98 144 99 Z" />
+                </g>
+                <g class="seal-head-group">
+                  <ellipse class="seal-head" cx="146" cy="72" rx="43" ry="34" />
+                  <ellipse class="seal-cheek seal-cheek-left" cx="126" cy="78" rx="8" ry="5" />
+                  <ellipse class="seal-cheek seal-cheek-right" cx="166" cy="78" rx="8" ry="5" />
+                  <path class="seal-eye seal-eye-left seal-eye-closed" d="M125 64 Q131 68 137 64" />
+                  <path class="seal-eye seal-eye-right seal-eye-closed" d="M154 64 Q160 68 166 64" />
+                  <circle class="seal-eye-open seal-eye-open-left" cx="131" cy="65" r="3.2" />
+                  <circle class="seal-eye-open seal-eye-open-right" cx="160" cy="65" r="3.2" />
+                  <ellipse class="seal-nose" cx="145" cy="73" rx="4.8" ry="3.4" />
+                  <path class="seal-mouth" d="M145 77 C141 82 136 82 133 79 M145 77 C149 82 154 82 157 79" />
+                  <path class="seal-whisker seal-whisker-left" d="M136 74 C126 72 118 71 109 72 M136 78 C126 79 118 81 110 84" />
+                  <path class="seal-whisker seal-whisker-right" d="M154 74 C164 72 173 71 181 72 M154 78 C164 79 172 81 180 84" />
+                </g>
+              </svg>
             </div>
           </div>
         </div>
