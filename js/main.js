@@ -842,6 +842,16 @@
       setPetState("interact", 700);
     };
 
+    const isPointNearPet = (event, padding = 12) => {
+      const rect = pet.getBoundingClientRect();
+      return (
+        event.clientX >= rect.left - padding &&
+        event.clientX <= rect.right + padding &&
+        event.clientY >= rect.top - padding &&
+        event.clientY <= rect.bottom + padding
+      );
+    };
+
     const triggerArrive = () => {
       const now = performance.now();
       if (now < state.arrivedCooldownUntil || now < state.lockedUntil) return;
@@ -949,6 +959,19 @@
       },
       { passive: true }
     );
+
+    card.addEventListener("pointerdown", (event) => {
+      if (event.target.closest("[data-hamster-pet]")) return;
+      if (!isPointNearPet(event)) return;
+      event.preventDefault();
+      triggerInteract();
+    });
+
+    pet.addEventListener("pointerdown", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      triggerInteract();
+    });
 
     pet.addEventListener("click", (event) => {
       event.preventDefault();
