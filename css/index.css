@@ -388,17 +388,10 @@ body.nav-open .menu-toggle span + span {
   --sheen-y: 50%;
   --sheen-opacity: 0;
   --surface-dent: 0;
-  --paper-lift: -1px;
-  --paper-tilt-x: 0deg;
-  --paper-tilt-y: 0deg;
-  --paper-scale-x: 1;
-  --paper-scale-y: 1;
-  --paper-radius: 0px;
+  --paper-clip: inset(0 round 11px);
   --paper-shadow: 0.052;
   --paper-contact: 0.035;
   --edge-glow-opacity: 0;
-  --edge-shift-x: 0px;
-  --edge-shift-y: 0px;
   --fiber-shift-x: 0px;
   --fiber-shift-y: 0px;
   animation: paper-card-enter 1180ms cubic-bezier(0.19, 1, 0.22, 1) 120ms both;
@@ -423,7 +416,8 @@ body.nav-open .menu-toggle span + span {
 .identity-card-shell.is-hovered::before {
   opacity: 0.58;
   filter: blur(30px);
-  transform: translate3d(var(--edge-shift-x), calc(13px + var(--edge-shift-y)), 0) scale(1.014);
+  transform: translate3d(0, 13px, 0) scale(1.014);
+  --edge-glow-opacity: 0.24;
 }
 
 .identity-card-shell::after {
@@ -433,15 +427,18 @@ body.nav-open .menu-toggle span + span {
   z-index: 3;
   pointer-events: none;
   border: 1px solid rgba(255, 255, 255, 0.52);
-  border-radius: calc(12px + var(--paper-radius));
+  border-radius: 12px;
+  clip-path: var(--paper-clip);
   box-shadow:
     0 0 0 1px rgba(81, 117, 140, 0.055),
     inset 0 1px 2px rgba(255, 255, 255, 0.82),
     inset 0 -1px 2px rgba(81, 117, 140, 0.035);
   opacity: var(--edge-glow-opacity);
-  transform: translate3d(var(--edge-shift-x), var(--edge-shift-y), 0) scale(var(--paper-scale-x), var(--paper-scale-y));
-  transform-origin: center;
   transition: opacity 260ms ease;
+}
+
+.identity-card-shell.is-hovered::after {
+  --edge-glow-opacity: 0.24;
 }
 
 .hero-space {
@@ -457,7 +454,8 @@ body.nav-open .menu-toggle span + span {
     linear-gradient(118deg, rgba(81, 117, 140, 0.065), transparent 22%, transparent 62%, rgba(205, 171, 112, 0.052)),
     repeating-linear-gradient(92deg, rgba(64, 100, 112, 0.018) 0 1px, transparent 1px 52px);
   border: 1px solid rgba(81, 117, 140, 0.17);
-  border-radius: calc(11px + var(--paper-radius));
+  border-radius: 11px;
+  clip-path: var(--paper-clip);
   box-shadow:
     0 18px 42px rgba(47, 42, 34, var(--paper-shadow)),
     0 9px 22px rgba(81, 117, 140, var(--paper-contact)),
@@ -465,10 +463,8 @@ body.nav-open .menu-toggle span + span {
     inset 0 -18px 34px rgba(81, 117, 140, 0.025),
     inset 0 0 0 1px rgba(255, 255, 255, 0.48);
   filter: drop-shadow(0 20px 24px rgba(47, 42, 34, 0.055));
-  transform: perspective(1100px) rotateX(var(--paper-tilt-x)) rotateY(var(--paper-tilt-y)) translate3d(0, var(--paper-lift), 0) scale(var(--paper-scale-x), var(--paper-scale-y));
-  transform-style: preserve-3d;
   transition: border-color 320ms ease, filter 420ms ease;
-  will-change: transform;
+  will-change: clip-path;
 }
 
 .identity-card-shell.is-hovered .hero-space {

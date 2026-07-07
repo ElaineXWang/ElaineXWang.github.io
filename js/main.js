@@ -278,46 +278,109 @@
     if (!paper || reduceMotion) return;
 
     const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+    const rand = (min, max) => Math.random() * (max - min) + min;
+
     const state = {
       x: 0,
       y: 0,
-      active: 0,
-      lift: -1,
-      tiltX: 0,
-      tiltY: 0,
-      scaleX: 1,
-      scaleY: 1,
-      radius: 0,
       sheen: 0,
       dent: 0,
       shadow: 0.052,
       contact: 0.035,
-      edge: 0,
-      edgeX: 0,
-      edgeY: 0,
       fiberX: 0,
       fiberY: 0
     };
     const target = { ...state };
+    const pointer = {
+      active: false,
+      x: 0,
+      y: 0,
+      vx: 0,
+      vy: 0,
+      lastX: 0,
+      lastY: 0,
+      lastT: 0
+    };
+    let width = 0;
+    let height = 0;
+    let points = [];
     let frameId = null;
+    let resizeTimer = null;
 
     const setVar = (name, value) => shell.style.setProperty(name, value);
+
+    const addPoint = (x, y, nx, ny) => {
+      const fiber = rand(-0.45, 0.45);
+      points.push({
+        restX: x + nx * fiber,
+        restY: y + ny * fiber,
+        x: x + nx * fiber,
+        y: y + ny * fiber,
+        vx: 0,
+        vy: 0
+      });
+    };
+
+    const rebuildEdge = () => {
+      const rect = paper.getBoundingClientRect();
+      width = Math.max(320, Math.round(rect.width));
+      height = Math.max(220, Math.round(rect.height));
+      points = [];
+
+      const radius = Math.min(20, width * 0.045, height * 0.08);
+      const sideSteps = width < 560 ? 8 : 12;
+      const verticalSteps = width < 560 ? 5 : 7;
+      const cornerSteps = 5;
+
+      for (let i = 0; i <= sideSteps; i += 1) {
+        addPoint(radius + ((width - radius * 2) * i) / sideSteps, 0, 0, -1);
+      }
+      for (let i = 1; i <= cornerSteps; i += 1) {
+        const angle = -Math.PI / 2 + (i * Math.PI) / (2 * cornerSteps);
+        addPoint(width - radius + Math.cos(angle) * radius, radius + Math.sin(angle) * radius, Math.cos(angle), Math.sin(angle));
+      }
+      for (let i = 1; i <= verticalSteps; i += 1) {
+        addPoint(width, radius + ((height - radius * 2) * i) / verticalSteps, 1, 0);
+      }
+      for (let i = 1; i <= cornerSteps; i += 1) {
+        const angle = (i * Math.PI) / (2 * cornerSteps);
+        addPoint(width - radius + Math.cos(angle) * radius, height - radius + Math.sin(angle) * radius, Math.cos(angle), Math.sin(angle));
+      }
+      for (let i = 1; i <= sideSteps; i += 1) {
+        addPoint(width - radius - ((width - radius * 2) * i) / sideSteps, height, 0, 1);
+      }
+      for (let i = 1; i <= cornerSteps; i += 1) {
+        const angle = Math.PI / 2 + (i * Math.PI) / (2 * cornerSteps);
+        addPoint(radius + Math.cos(angle) * radius, height - radius + Math.sin(angle) * radius, Math.cos(angle), Math.sin(angle));
+      }
+      for (let i = 1; i <= verticalSteps; i += 1) {
+        addPoint(0, height - radius - ((height - radius * 2) * i) / verticalSteps, -1, 0);
+      }
+      for (let i = 1; i <= cornerSteps; i += 1) {
+        const angle = Math.PI + (i * Math.PI) / (2 * cornerSteps);
+        addPoint(radius + Math.cos(angle) * radius, radius + Math.sin(angle) * radius, Math.cos(angle), Math.sin(angle));
+      }
+    };
+
+    const writeClip = () => {
+      if (!points.length) return;
+      const polygon = points
+        .map((point) => {
+          const x = (point.x / width) * 100;
+          const y = (point.y / height) * 100;
+          return `${x.toFixed(2)}% ${y.toFixed(2)}%`;
+        })
+        .join(", ");
+      setVar("--paper-clip", `polygon(${polygon})`);
+    };
+
     const writeState = () => {
       setVar("--sheen-x", `${state.x.toFixed(1)}px`);
       setVar("--sheen-y", `${state.y.toFixed(1)}px`);
       setVar("--sheen-opacity", state.sheen.toFixed(3));
       setVar("--surface-dent", state.dent.toFixed(3));
-      setVar("--paper-lift", `${state.lift.toFixed(2)}px`);
-      setVar("--paper-tilt-x", `${state.tiltX.toFixed(3)}deg`);
-      setVar("--paper-tilt-y", `${state.tiltY.toFixed(3)}deg`);
-      setVar("--paper-scale-x", state.scaleX.toFixed(4));
-      setVar("--paper-scale-y", state.scaleY.toFixed(4));
-      setVar("--paper-radius", `${state.radius.toFixed(2)}px`);
       setVar("--paper-shadow", state.shadow.toFixed(3));
       setVar("--paper-contact", state.contact.toFixed(3));
-      setVar("--edge-glow-opacity", state.edge.toFixed(3));
-      setVar("--edge-shift-x", `${state.edgeX.toFixed(2)}px`);
-      setVar("--edge-shift-y", `${state.edgeY.toFixed(2)}px`);
       setVar("--fiber-shift-x", `${state.fiberX.toFixed(2)}px`);
       setVar("--fiber-shift-y", `${state.fiberY.toFixed(2)}px`);
     };
@@ -326,7 +389,44 @@
       Object.keys(state).forEach((key) => {
         state[key] += (target[key] - state[key]) * 0.13;
       });
+
+      points.forEach((point) => {
+        point.vx += (point.restX - point.x) * 0.055;
+        point.vy += (point.restY - point.y) * 0.055;
+
+        if (pointer.active) {
+          const dx = pointer.x - point.x;
+          const dy = pointer.y - point.y;
+          const distance = Math.hypot(dx, dy);
+          const radius = width < 560 ? 84 : 116;
+
+          if (distance > 0 && distance < radius) {
+            const pull = Math.pow(1 - distance / radius, 2);
+            point.vx += (dx / distance) * pull * 0.92 + pointer.vx * pull * 0.052;
+            point.vy += (dy / distance) * pull * 0.92 + pointer.vy * pull * 0.052;
+          }
+        }
+
+        point.vx *= 0.835;
+        point.vy *= 0.835;
+        point.x += point.vx;
+        point.y += point.vy;
+
+        const offsetX = point.x - point.restX;
+        const offsetY = point.y - point.restY;
+        const offset = Math.hypot(offsetX, offsetY);
+        const limit = width < 560 ? 9.5 : 13.5;
+        if (offset > limit) {
+          const scale = limit / offset;
+          point.x = point.restX + offsetX * scale;
+          point.y = point.restY + offsetY * scale;
+          point.vx *= 0.58;
+          point.vy *= 0.58;
+        }
+      });
+
       writeState();
+      writeClip();
       frameId = window.requestAnimationFrame(animate);
     };
 
@@ -334,59 +434,56 @@
       const rect = paper.getBoundingClientRect();
       const x = event.clientX - rect.left;
       const y = event.clientY - rect.top;
-      const nx = clamp(x / Math.max(rect.width, 1), 0, 1);
-      const ny = clamp(y / Math.max(rect.height, 1), 0, 1);
+      const now = window.performance.now();
+      const elapsed = Math.max(16, now - pointer.lastT);
       const inside = x >= 0 && y >= 0 && x <= rect.width && y <= rect.height;
       const edgeDistance = Math.min(x, y, rect.width - x, rect.height - y);
-      const edge = inside ? Math.pow(clamp(1 - edgeDistance / 104, 0, 1), 1.35) : 0;
+      const edge = inside ? Math.pow(clamp(1 - edgeDistance / 104, 0, 1), 1.15) : 0;
       const pressure = inside ? 1 : 0;
-      const horizontalPull = nx - 0.5;
-      const verticalPull = ny - 0.5;
+
+      pointer.vx = clamp(((x - pointer.lastX) / elapsed) * 16, -28, 28);
+      pointer.vy = clamp(((y - pointer.lastY) / elapsed) * 16, -28, 28);
+      pointer.x = x;
+      pointer.y = y;
+      pointer.lastX = x;
+      pointer.lastY = y;
+      pointer.lastT = now;
+      pointer.active = true;
 
       target.x = x;
       target.y = y;
-      target.active = pressure;
-      target.lift = -1 - pressure * 5.8 - edge * 1.6;
-      target.tiltX = (0.5 - ny) * (0.85 + edge * 0.85);
-      target.tiltY = horizontalPull * (0.85 + edge * 0.85);
-      target.scaleX = 1 + pressure * 0.004 - Math.abs(horizontalPull) * edge * 0.006;
-      target.scaleY = 1 + pressure * 0.003 - Math.abs(verticalPull) * edge * 0.005;
-      target.radius = pressure * 1.2 + edge * 2.8;
-      target.sheen = 0.07 + pressure * 0.14 + edge * 0.06;
-      target.dent = 0.01 + edge * 0.045;
-      target.shadow = 0.058 + pressure * 0.02 + edge * 0.02;
-      target.contact = 0.036 + pressure * 0.018 + edge * 0.018;
-      target.edge = 0.16 + edge * 0.32;
-      target.edgeX = horizontalPull * (3.2 + edge * 4.2);
-      target.edgeY = verticalPull * (2.4 + edge * 3.8);
-      target.fiberX = horizontalPull * (5 + edge * 7);
-      target.fiberY = verticalPull * (4 + edge * 6);
+      target.sheen = pressure ? 0.07 + pressure * 0.14 + edge * 0.06 : 0;
+      target.dent = pressure ? 0.01 + edge * 0.045 : 0;
+      target.shadow = 0.052 + edge * 0.012;
+      target.contact = 0.035 + edge * 0.012;
+      target.fiberX = pointer.vx * 0.08;
+      target.fiberY = pointer.vy * 0.07;
       shell.classList.toggle("is-hovered", inside);
     };
 
     const clearPointer = () => {
       shell.classList.remove("is-hovered");
-      target.active = 0;
-      target.lift = -1;
-      target.tiltX = 0;
-      target.tiltY = 0;
-      target.scaleX = 1;
-      target.scaleY = 1;
-      target.radius = 0;
+      pointer.active = false;
+      pointer.vx = 0;
+      pointer.vy = 0;
       target.sheen = 0;
       target.dent = 0;
       target.shadow = 0.052;
       target.contact = 0.035;
-      target.edge = 0;
-      target.edgeX = 0;
-      target.edgeY = 0;
       target.fiberX = 0;
       target.fiberY = 0;
     };
 
     shell.addEventListener("pointermove", updatePointer, { passive: true });
     shell.addEventListener("pointerleave", clearPointer, { passive: true });
-    frameId = window.requestAnimationFrame(animate);
+    window.addEventListener(
+      "resize",
+      () => {
+        window.clearTimeout(resizeTimer);
+        resizeTimer = window.setTimeout(rebuildEdge, 160);
+      },
+      { passive: true }
+    );
 
     document.addEventListener("visibilitychange", () => {
       if (document.hidden && frameId) {
@@ -396,6 +493,9 @@
         frameId = window.requestAnimationFrame(animate);
       }
     });
+
+    rebuildEdge();
+    frameId = window.requestAnimationFrame(animate);
   };
 
   initParticleTitle();
