@@ -1157,7 +1157,134 @@
     });
   };
 
+  const initResearchVisual = () => {
+    const visual = document.querySelector("[data-research-visual]");
+    if (!visual || reduceMotion) return;
+
+    const layer = visual.querySelector("[data-research-layer]");
+    const nodes = Array.from(visual.querySelectorAll(".research-node"));
+    const state = {
+      x: 50,
+      y: 50,
+      glow: 0,
+      shiftX: 0,
+      shiftY: 0,
+      imgX: 0,
+      imgY: 0,
+      scale: 1
+    };
+    const target = { ...state };
+    let frameId = null;
+
+    const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+
+    const write = () => {
+      visual.style.setProperty("--visual-x", `${state.x.toFixed(1)}%`);
+      visual.style.setProperty("--visual-y", `${state.y.toFixed(1)}%`);
+      visual.style.setProperty("--visual-glow", state.glow.toFixed(3));
+      visual.style.setProperty("--visual-shift-x", `${state.shiftX.toFixed(2)}px`);
+      visual.style.setProperty("--visual-shift-y", `${state.shiftY.toFixed(2)}px`);
+      visual.style.setProperty("--visual-img-x", `${state.imgX.toFixed(2)}px`);
+      visual.style.setProperty("--visual-img-y", `${state.imgY.toFixed(2)}px`);
+      visual.style.setProperty("--visual-scale", state.scale.toFixed(4));
+    };
+
+    const animate = () => {
+      let moving = false;
+
+      Object.keys(state).forEach((key) => {
+        state[key] += (target[key] - state[key]) * 0.14;
+        moving = moving || Math.abs(target[key] - state[key]) > 0.003;
+      });
+
+      write();
+
+      if (moving || visual.classList.contains("is-visual-active")) {
+        frameId = window.requestAnimationFrame(animate);
+      } else {
+        frameId = null;
+      }
+    };
+
+    const ensureAnimation = () => {
+      if (!frameId) frameId = window.requestAnimationFrame(animate);
+    };
+
+    const activateNearestNode = (event) => {
+      const activeRadius = 96;
+      let nearest = null;
+      let nearestDistance = Infinity;
+
+      nodes.forEach((node) => {
+        const rect = node.getBoundingClientRect();
+        const cx = rect.left + rect.width / 2;
+        const cy = rect.top + rect.height / 2;
+        const dist = Math.hypot(event.clientX - cx, event.clientY - cy);
+
+        if (dist < nearestDistance) {
+          nearestDistance = dist;
+          nearest = node;
+        }
+      });
+
+      nodes.forEach((node) => {
+        node.classList.toggle("is-node-active", node === nearest && nearestDistance < activeRadius);
+      });
+    };
+
+    const update = (event) => {
+      const rect = visual.getBoundingClientRect();
+      const x = event.clientX - rect.left;
+      const y = event.clientY - rect.top;
+      const nx = clamp(x / Math.max(rect.width, 1), 0, 1);
+      const ny = clamp(y / Math.max(rect.height, 1), 0, 1);
+      const centerX = nx - 0.5;
+      const centerY = ny - 0.5;
+
+      target.x = nx * 100;
+      target.y = ny * 100;
+      target.glow = 1;
+      target.shiftX = centerX * 3.4;
+      target.shiftY = centerY * 2.2;
+      target.imgX = centerX * -7.5;
+      target.imgY = centerY * -4.8;
+      target.scale = 1.006;
+
+      visual.classList.add("is-visual-active");
+      if (layer) layer.classList.add("is-visual-layer-active");
+      activateNearestNode(event);
+      ensureAnimation();
+    };
+
+    const clear = () => {
+      target.glow = 0;
+      target.shiftX = 0;
+      target.shiftY = 0;
+      target.imgX = 0;
+      target.imgY = 0;
+      target.scale = 1;
+      visual.classList.remove("is-visual-active");
+      if (layer) layer.classList.remove("is-visual-layer-active");
+      nodes.forEach((node) => node.classList.remove("is-node-active"));
+      ensureAnimation();
+    };
+
+    visual.addEventListener("pointermove", update, { passive: true });
+    visual.addEventListener("pointerleave", clear, { passive: true });
+    visual.addEventListener("focus", () => {
+      target.x = 58;
+      target.y = 48;
+      target.glow = 0.74;
+      target.scale = 1.004;
+      visual.classList.add("is-visual-active");
+      ensureAnimation();
+    });
+    visual.addEventListener("blur", clear);
+    write();
+  };
+
   initParticleTitle();
   initHamsterPet();
   initLiquidMicroInteractions();
+  initResearchVisual();
 })();

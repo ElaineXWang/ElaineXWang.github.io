@@ -33,7 +33,7 @@
   <link rel="canonical" href="https://elainexwang.github.io/">
   <link rel="shortcut icon" href="/img/favicon_3.jpg">
   <link rel="preload" href="/img/profile-headshot.jpg" as="image">
-  <link rel="stylesheet" href="/css/index.css?v=20260707-hamster-pet5">
+  <link rel="stylesheet" href="/css/index.css?v=20260707-visual-map1">
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -240,8 +240,17 @@
           I am interested in how computational methods, large language models, and digital interventions can support more
           valid, ethical, and context-sensitive mental health research and care.
         </p>
-        <figure class="research-visual">
-          <img src="/img/research-map.png" alt="Conceptual illustration of AI, psychology, health, and social connection">
+        <figure class="research-visual" data-research-visual role="img" tabindex="0" aria-label="Interactive conceptual map of research directions">
+          <div class="research-visual-inner" data-research-layer>
+            <img src="/img/research-map.png" alt="Conceptual illustration of AI, psychology, health, and social connection">
+            <span class="research-flow flow-a" aria-hidden="true"></span>
+            <span class="research-flow flow-b" aria-hidden="true"></span>
+            <span class="research-flow flow-c" aria-hidden="true"></span>
+            <span class="research-node node-ai" data-node-label="LLMs" aria-hidden="true"><span>LLMs</span></span>
+            <span class="research-node node-health" data-node-label="Health Psychology" aria-hidden="true"><span>Health Psychology</span></span>
+            <span class="research-node node-digital" data-node-label="Digital Mental Health" aria-hidden="true"><span>Digital Mental Health</span></span>
+            <span class="research-node node-social" data-node-label="Social Simulation" aria-hidden="true"><span>Social Simulation</span></span>
+          </div>
         </figure>
       </section>
 
@@ -366,6 +375,6 @@
     <p>&copy; 2026 Xi Wang.</p>
   </footer>
 
-  <script src="/js/main.js"></script>
+  <script src="/js/main.js?v=20260707-visual-map1"></script>
 </body>
 </html>
