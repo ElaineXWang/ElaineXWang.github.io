@@ -417,7 +417,6 @@ body.nav-open .menu-toggle span + span {
   opacity: 0.58;
   filter: blur(30px);
   transform: translate3d(0, 13px, 0) scale(1.014);
-  --edge-glow-opacity: 0.24;
 }
 
 .identity-card-shell::after {
@@ -435,10 +434,6 @@ body.nav-open .menu-toggle span + span {
     inset 0 -1px 2px rgba(81, 117, 140, 0.035);
   opacity: var(--edge-glow-opacity);
   transition: opacity 260ms ease;
-}
-
-.identity-card-shell.is-hovered::after {
-  --edge-glow-opacity: 0.24;
 }
 
 .hero-space {
@@ -567,6 +562,16 @@ body.nav-open .menu-toggle span + span {
 }
 
 .identity-keywords span {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  --fluid-x: 50%;
+  --fluid-y: 50%;
+  --fluid-opacity: 0;
+  --fluid-shift-x: 0px;
+  --fluid-shift-y: 0px;
+  --fluid-scale: 1;
+  --fluid-border: 0;
   display: inline-flex;
   align-items: center;
   min-height: 29px;
@@ -578,7 +583,27 @@ body.nav-open .menu-toggle span + span {
   box-shadow: 0 8px 18px rgba(47, 42, 34, 0.035);
   font-size: 12px;
   font-weight: 700;
-  animation: paper-content-enter 620ms ease both;
+  animation: paper-content-enter 620ms ease backwards;
+  transform: translate3d(var(--fluid-shift-x), var(--fluid-shift-y), 0) scale(var(--fluid-scale));
+  transition: border-color 260ms ease, box-shadow 260ms ease, color 260ms ease;
+  will-change: transform;
+}
+
+.identity-keywords span::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  z-index: 0;
+  background:
+    radial-gradient(circle at var(--fluid-x) var(--fluid-y), rgba(255, 255, 255, 0.9), transparent 48%),
+    radial-gradient(circle at calc(var(--fluid-x) + 18%) calc(var(--fluid-y) + 24%), rgba(105, 132, 112, 0.24), transparent 58%);
+  opacity: var(--fluid-opacity);
+  transition: background 120ms ease;
+}
+
+.identity-keywords span.is-fluid-active {
+  border-color: rgba(81, 117, 140, 0.28);
+  box-shadow: 0 12px 24px rgba(47, 42, 34, 0.045);
 }
 
 .identity-keywords span:nth-child(1) {
@@ -608,6 +633,15 @@ body.nav-open .menu-toggle span + span {
 .metric-card {
   position: relative;
   overflow: hidden;
+  isolation: isolate;
+  --fluid-x: 50%;
+  --fluid-y: 50%;
+  --fluid-opacity: 0;
+  --fluid-shift-x: 0px;
+  --fluid-shift-y: 0px;
+  --fluid-scale: 1;
+  --fluid-border: 0;
+  --number-scale: 1;
   display: grid;
   align-content: center;
   min-height: 86px;
@@ -618,8 +652,10 @@ body.nav-open .menu-toggle span + span {
   border-radius: 8px;
   box-shadow: 0 12px 28px rgba(47, 42, 34, 0.05);
   text-decoration: none;
-  animation: metric-card-enter 620ms cubic-bezier(0.19, 1, 0.22, 1) both;
-  transition: transform 220ms ease, border-color 220ms ease, background 220ms ease, box-shadow 220ms ease;
+  animation: metric-card-enter 620ms cubic-bezier(0.19, 1, 0.22, 1) backwards;
+  transform: translate3d(var(--fluid-shift-x), var(--fluid-shift-y), 0) scale(var(--fluid-scale));
+  transition: border-color 260ms ease, background 260ms ease, box-shadow 260ms ease;
+  will-change: transform;
 }
 
 .metric-card:nth-child(1) {
@@ -644,33 +680,52 @@ body.nav-open .menu-toggle span + span {
   top: 0;
   left: 0;
   right: 0;
+  z-index: 2;
   height: 2px;
   background: linear-gradient(90deg, rgba(81, 117, 140, 0.52), rgba(105, 132, 112, 0.22));
   opacity: 0.7;
 }
 
-.metric-card:hover {
-  border-color: rgba(81, 117, 140, 0.24);
+.metric-card::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  z-index: 0;
+  background:
+    radial-gradient(circle at var(--fluid-x) var(--fluid-y), rgba(255, 255, 255, 0.94), transparent 44%),
+    radial-gradient(circle at calc(var(--fluid-x) + 16%) calc(var(--fluid-y) + 22%), rgba(81, 117, 140, 0.22), transparent 56%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.28), transparent 68%);
+  opacity: var(--fluid-opacity);
+}
+
+.metric-card:hover,
+.metric-card.is-fluid-active {
+  border-color: rgba(81, 117, 140, 0.26);
   background: rgba(255, 255, 255, 0.93);
-  box-shadow: 0 18px 34px rgba(47, 42, 34, 0.065);
-  transform: translateY(-3px);
+  box-shadow: 0 16px 32px rgba(47, 42, 34, 0.058);
 }
 
 .metric-card strong {
+  position: relative;
+  z-index: 1;
   display: block;
   color: var(--ink);
   font-family: var(--serif);
   font-size: 31px;
   line-height: 1;
+  transform: scale(var(--number-scale));
+  transform-origin: left center;
   transition: filter 220ms ease, transform 220ms ease;
 }
 
-.metric-card:hover strong {
+.metric-card:hover strong,
+.metric-card.is-fluid-active strong {
   filter: contrast(1.08);
-  transform: scale(1.025);
 }
 
 .metric-card span {
+  position: relative;
+  z-index: 1;
   display: block;
   margin-top: 7px;
   color: var(--muted);

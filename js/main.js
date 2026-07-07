@@ -287,6 +287,7 @@
       dent: 0,
       shadow: 0.052,
       contact: 0.035,
+      edgeGlow: 0,
       fiberX: 0,
       fiberY: 0
     };
@@ -317,7 +318,9 @@
         x: x + nx * fiber,
         y: y + ny * fiber,
         vx: 0,
-        vy: 0
+        vy: 0,
+        nx,
+        ny
       });
     };
 
@@ -328,9 +331,9 @@
       points = [];
 
       const radius = Math.min(20, width * 0.045, height * 0.08);
-      const sideSteps = width < 560 ? 8 : 12;
-      const verticalSteps = width < 560 ? 5 : 7;
-      const cornerSteps = 5;
+      const sideSteps = width < 560 ? 10 : 16;
+      const verticalSteps = width < 560 ? 7 : 10;
+      const cornerSteps = 6;
 
       for (let i = 0; i <= sideSteps; i += 1) {
         addPoint(radius + ((width - radius * 2) * i) / sideSteps, 0, 0, -1);
@@ -381,6 +384,7 @@
       setVar("--surface-dent", state.dent.toFixed(3));
       setVar("--paper-shadow", state.shadow.toFixed(3));
       setVar("--paper-contact", state.contact.toFixed(3));
+      setVar("--edge-glow-opacity", state.edgeGlow.toFixed(3));
       setVar("--fiber-shift-x", `${state.fiberX.toFixed(2)}px`);
       setVar("--fiber-shift-y", `${state.fiberY.toFixed(2)}px`);
     };
@@ -398,24 +402,26 @@
           const dx = pointer.x - point.x;
           const dy = pointer.y - point.y;
           const distance = Math.hypot(dx, dy);
-          const radius = width < 560 ? 84 : 116;
+          const radius = width < 560 ? 112 : 154;
 
           if (distance > 0 && distance < radius) {
-            const pull = Math.pow(1 - distance / radius, 2);
-            point.vx += (dx / distance) * pull * 0.92 + pointer.vx * pull * 0.052;
-            point.vy += (dy / distance) * pull * 0.92 + pointer.vy * pull * 0.052;
+            const pull = Math.pow(1 - distance / radius, 2.15);
+            const velocity = Math.hypot(pointer.vx, pointer.vy);
+            const tide = 1 + clamp(velocity / 18, 0, 0.72);
+            point.vx += (dx / distance) * pull * 1.36 * tide + pointer.vx * pull * 0.074;
+            point.vy += (dy / distance) * pull * 1.36 * tide + pointer.vy * pull * 0.074;
           }
         }
 
-        point.vx *= 0.835;
-        point.vy *= 0.835;
+        point.vx *= 0.82;
+        point.vy *= 0.82;
         point.x += point.vx;
         point.y += point.vy;
 
         const offsetX = point.x - point.restX;
         const offsetY = point.y - point.restY;
         const offset = Math.hypot(offsetX, offsetY);
-        const limit = width < 560 ? 9.5 : 13.5;
+        const limit = width < 560 ? 14 : 21;
         if (offset > limit) {
           const scale = limit / offset;
           point.x = point.restX + offsetX * scale;
@@ -423,6 +429,15 @@
           point.vx *= 0.58;
           point.vy *= 0.58;
         }
+      });
+
+      points.forEach((point, index) => {
+        const previous = points[(index - 1 + points.length) % points.length];
+        const next = points[(index + 1) % points.length];
+        const surfaceX = (previous.x + next.x) * 0.5 - point.x;
+        const surfaceY = (previous.y + next.y) * 0.5 - point.y;
+        point.vx += surfaceX * 0.021;
+        point.vy += surfaceY * 0.021;
       });
 
       writeState();
@@ -437,8 +452,9 @@
       const now = window.performance.now();
       const elapsed = Math.max(16, now - pointer.lastT);
       const inside = x >= 0 && y >= 0 && x <= rect.width && y <= rect.height;
+      const near = x >= -80 && y >= -80 && x <= rect.width + 80 && y <= rect.height + 80;
       const edgeDistance = Math.min(x, y, rect.width - x, rect.height - y);
-      const edge = inside ? Math.pow(clamp(1 - edgeDistance / 104, 0, 1), 1.15) : 0;
+      const edge = near ? Math.pow(clamp(1 - Math.abs(edgeDistance) / 118, 0, 1), 1.05) : 0;
       const pressure = inside ? 1 : 0;
 
       pointer.vx = clamp(((x - pointer.lastX) / elapsed) * 16, -28, 28);
@@ -448,17 +464,18 @@
       pointer.lastX = x;
       pointer.lastY = y;
       pointer.lastT = now;
-      pointer.active = true;
+      pointer.active = near;
 
       target.x = x;
       target.y = y;
       target.sheen = pressure ? 0.07 + pressure * 0.14 + edge * 0.06 : 0;
       target.dent = pressure ? 0.01 + edge * 0.045 : 0;
-      target.shadow = 0.052 + edge * 0.012;
-      target.contact = 0.035 + edge * 0.012;
+      target.shadow = 0.052 + edge * 0.018;
+      target.contact = 0.035 + edge * 0.018;
+      target.edgeGlow = near ? 0.12 + edge * 0.3 : 0;
       target.fiberX = pointer.vx * 0.08;
       target.fiberY = pointer.vy * 0.07;
-      shell.classList.toggle("is-hovered", inside);
+      shell.classList.toggle("is-hovered", near);
     };
 
     const clearPointer = () => {
@@ -470,6 +487,7 @@
       target.dent = 0;
       target.shadow = 0.052;
       target.contact = 0.035;
+      target.edgeGlow = 0;
       target.fiberX = 0;
       target.fiberY = 0;
     };
@@ -498,6 +516,100 @@
     frameId = window.requestAnimationFrame(animate);
   };
 
+  const initLiquidMicroInteractions = () => {
+    if (reduceMotion) return;
+
+    const items = document.querySelectorAll(".identity-keywords span, .metric-card");
+    if (!items.length) return;
+
+    const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+
+    items.forEach((element) => {
+      const isMetric = element.classList.contains("metric-card");
+      const state = {
+        x: 50,
+        y: 50,
+        opacity: 0,
+        shiftX: 0,
+        shiftY: 0,
+        scale: 1,
+        numberScale: 1,
+        border: 0
+      };
+      const target = { ...state };
+      let frameId = null;
+
+      const write = () => {
+        element.style.setProperty("--fluid-x", `${state.x.toFixed(1)}%`);
+        element.style.setProperty("--fluid-y", `${state.y.toFixed(1)}%`);
+        element.style.setProperty("--fluid-opacity", state.opacity.toFixed(3));
+        element.style.setProperty("--fluid-shift-x", `${state.shiftX.toFixed(2)}px`);
+        element.style.setProperty("--fluid-shift-y", `${state.shiftY.toFixed(2)}px`);
+        element.style.setProperty("--fluid-scale", state.scale.toFixed(4));
+        element.style.setProperty("--number-scale", state.numberScale.toFixed(4));
+        element.style.setProperty("--fluid-border", state.border.toFixed(3));
+      };
+
+      const animate = () => {
+        let moving = false;
+        Object.keys(state).forEach((key) => {
+          state[key] += (target[key] - state[key]) * 0.18;
+          moving = moving || Math.abs(target[key] - state[key]) > 0.002;
+        });
+        write();
+
+        if (moving || element.classList.contains("is-fluid-active")) {
+          frameId = window.requestAnimationFrame(animate);
+        } else {
+          frameId = null;
+        }
+      };
+
+      const ensureAnimation = () => {
+        if (!frameId) frameId = window.requestAnimationFrame(animate);
+      };
+
+      const update = (event) => {
+        const rect = element.getBoundingClientRect();
+        const x = event.clientX - rect.left;
+        const y = event.clientY - rect.top;
+        const nx = clamp(x / Math.max(rect.width, 1), 0, 1);
+        const ny = clamp(y / Math.max(rect.height, 1), 0, 1);
+        const centerX = nx - 0.5;
+        const centerY = ny - 0.5;
+        const pull = isMetric ? 4.6 : 2.4;
+
+        target.x = nx * 100;
+        target.y = ny * 100;
+        target.opacity = isMetric ? 0.44 : 0.36;
+        target.shiftX = centerX * pull;
+        target.shiftY = centerY * pull * 0.72;
+        target.scale = isMetric ? 1.012 : 1.018;
+        target.numberScale = isMetric ? 1.032 : 1;
+        target.border = isMetric ? 1 : 0.8;
+        element.classList.add("is-fluid-active");
+        ensureAnimation();
+      };
+
+      const clear = () => {
+        target.opacity = 0;
+        target.shiftX = 0;
+        target.shiftY = 0;
+        target.scale = 1;
+        target.numberScale = 1;
+        target.border = 0;
+        element.classList.remove("is-fluid-active");
+        ensureAnimation();
+      };
+
+      element.addEventListener("pointermove", update, { passive: true });
+      element.addEventListener("pointerleave", clear, { passive: true });
+      element.addEventListener("blur", clear, { passive: true });
+      write();
+    });
+  };
+
   initParticleTitle();
   initIdentityCardPhysics();
+  initLiquidMicroInteractions();
 })();
