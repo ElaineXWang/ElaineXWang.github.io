@@ -465,7 +465,7 @@ body.nav-open .menu-toggle span + span {
 .hero-copy {
   position: relative;
   z-index: 3;
-  max-width: 760px;
+  max-width: none;
 }
 
 .pet-target-dot {
@@ -672,6 +672,8 @@ body.nav-open .menu-toggle span + span {
 }
 
 .hero-kicker {
+  display: inline-flex;
+  align-items: center;
   margin: 0 !important;
   color: #385869 !important;
   font-size: 12px !important;
@@ -786,7 +788,8 @@ body.nav-open .menu-toggle span + span {
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
   margin-top: 18px;
-  max-width: 720px;
+  width: 100%;
+  max-width: none;
 }
 
 .metric-card {
@@ -1408,19 +1411,15 @@ body.nav-open .menu-toggle span + span {
 @media (min-width: 980px) {
   .hero-space {
     min-height: 292px;
-    padding-right: 190px;
+    padding-right: 30px;
   }
 
   .hero-copy {
-    max-width: 650px;
+    max-width: none;
   }
 
   .particle-title {
     width: min(100%, 540px);
-  }
-
-  .metrics-grid {
-    max-width: 650px;
   }
 
   .hamster-pet {

@@ -688,11 +688,11 @@
     const intersects = (a, b) => !(a.right < b.left || a.left > b.right || a.bottom < b.top || a.top > b.bottom);
 
     const currentConfig = () => {
-      const width = card.getBoundingClientRect().width;
+      const { width, height } = card.getBoundingClientRect();
       return {
         edgeMargin: width < 620 ? 10 : 14,
         avoidPadding: width < 620 ? 10 : 15,
-        senseRadius: width < 620 ? 150 : 280,
+        senseRadius: Math.hypot(width, height) + 80,
         arriveRadius: width < 620 ? 15 : 18,
         followDistance: width < 620 ? 22 : 28,
         speed: width < 620 ? 0.085 : 0.075,
@@ -713,7 +713,19 @@
         bottom: Math.max(config.edgeMargin, cardRect.height - petHeight - config.edgeMargin)
       };
 
-      state.obstacles = Array.from(card.querySelectorAll("[data-pet-avoid]")).map((element) => {
+      const obstacleElements = Array.from(card.querySelectorAll("[data-pet-avoid]")).flatMap((element) => {
+        if (element.classList.contains("identity-keywords")) {
+          return Array.from(element.querySelectorAll("span"));
+        }
+
+        if (element.classList.contains("identity-head")) {
+          return Array.from(element.children).filter((child) => child.getBoundingClientRect().width > 0);
+        }
+
+        return [element];
+      });
+
+      state.obstacles = obstacleElements.map((element) => {
         const rect = element.getBoundingClientRect();
         return {
           left: rect.left - cardRect.left - config.avoidPadding,
